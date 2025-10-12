@@ -1,0 +1,19 @@
+- Test script runs: command "$VIRTUAL_ENV/bin/emoji-generator --help" exits
+  successfully.
+- Create script and install package in editable mode, and test green
+- Download database to data (patching `requests`)
+- Iterate database with appropriate typing
+- Each database entry can produce:
+  - Trigger phrases
+  - Emoji (unified form)
+  - Name, descriptive and simple
+  - Additional keywords for search
+  - emoji as hex code sequences (for uid generation)
+- Create snippet pack class with appropriate type
+  - Whatever goes in the plist
+    - prefix and suffix
+  - List of alfred snippets
+    - keyword, name + search keywords, emoji, uuid, autoexpand
+- Write snippet pack class to disk
+- Create snippet pack class for MacOS text expansions
+- compare to joel's

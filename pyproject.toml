@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "emojipack"
+version = "0.1.0"
+description = "Generate emoji snippets packs for Alfred"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "docformatter>=1.7.7",
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "ruff>=0.14.0",
+]
