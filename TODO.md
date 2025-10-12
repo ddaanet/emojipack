@@ -1,6 +1,5 @@
-- Test script runs: command "$VIRTUAL_ENV/bin/emoji-generator --help" exits
-  successfully.
-- Create script and install package in editable mode, and test green
+# TODO
+
 - Download database to data (patching `requests`)
 - Iterate database with appropriate typing
 - Each database entry can produce:

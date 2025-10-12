@@ -8,7 +8,12 @@ version = "0.1.0"
 description = "Generate emoji snippets packs for Alfred"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "typer>=0.19.2",
+]
+
+[project.scripts]
+emojipack-generator = "emojipack.cli:app"
 
 [dependency-groups]
 dev = [
