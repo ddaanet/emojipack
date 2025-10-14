@@ -9,6 +9,7 @@ description = "Generate emoji snippets packs for Alfred"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "platformdirs>=4.5.0",
     "requests>=2.32.5",
     "typer>=0.19.2",
 ]

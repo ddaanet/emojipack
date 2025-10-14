@@ -1,28 +1,6 @@
 # TODO
 
-- Download database
-  - Test download code, by patching requests. red
-  - Download implementation. Is explicit raise_for_status needed?
-
-    ```py
-    def fetch_emoji_data(self) -> list[EmojiData]:
-        """Fetch emoji data from iamcal/emoji-data repository."""
-        url = (
-          "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
-        )
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        response.json()
-    ```
-    green
-  - Test caching in data dir. red
-  - Implement caching. green.
-
 - Iterate database with appropriate typing
-  - Pick 😃 and 👍 from downloaded data as sample to patch `requests`.
-  - Verify the loading code return two instances with the right values.
-  - emoji, description, aliases, tags
-- Alternately, combine
 
 - Each database entry can produce:
   - Trigger phrases
