@@ -11,7 +11,7 @@ install: generate
     open "Emoji Pack.alfredsnippets"
 
 # Development workflow: test, format, check
-dev: #test format check
+dev: test format check
     @echo "\033[1;92m✅ OK\033[0m"
 
 # Agent workflow: minimal output version of dev
