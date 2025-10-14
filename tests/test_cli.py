@@ -12,8 +12,8 @@ def test_help_command_exits_successfully():
     script_path = Path(venv) / "bin" / "emojipack-generator"
     result = subprocess.run(
         [str(script_path), "--help"],
+        check=True,
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0
     assert "usage:" in result.stdout.lower() or "help" in result.stdout.lower()

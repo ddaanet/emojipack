@@ -4,9 +4,10 @@ from typing import TypedDict
 
 import requests
 
-
-GEMOJI_JSON_URL = \
+GEMOJI_JSON_URL = (
     "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
+)
+
 
 class GemojiEntry(TypedDict):
     """Gemoji database entry with filtered keys."""

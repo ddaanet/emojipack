@@ -8,4 +8,3 @@ app = typer.Typer()
 @app.command()
 def main() -> None:
     """Generate Emoji Snippet Pack for Alfred."""
-    pass

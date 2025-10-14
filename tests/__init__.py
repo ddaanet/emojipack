@@ -1,0 +1,1 @@
+"""Emojipack test suite package."""

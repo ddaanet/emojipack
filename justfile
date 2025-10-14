@@ -1,3 +1,5 @@
+_ := require("uv")
+
 # Display available recipes.
 help:
     @just --list
@@ -36,21 +38,26 @@ test *ARGS:
 clean:
     rm -rf __pycache__ .mypy_cache .venv build
 
+python_dirs := "src tests"
+python_files := shell("find " + python_dirs + " -name *.py")
+
 # Static code analysis and style checks
 check:
-    uv run -m py_compile *.py
-    uv run --dev ruff check *.py
-    uv run --dev ruff format --check *.py
-    uv run --dev docformatter --check *.py
-    uv run --dev mypy *.py
+    uv run -m compileall -q {{ python_dirs }}
+    uv run --dev ruff check {{ python_dirs }}
+    uv run --dev ruff format --check {{ python_dirs }}
+    uv run --dev docformatter --check {{ python_dirs }}
+    uv run --dev ty check  # First, because it's faster than mypy
+    uv run --dev mypy --strict {{ python_dirs }}
 
 # Static type checking only
 mypy:
-    uv run --dev mypy *.py
+    uv run --dev ty check  # First, because it's faster than mypy
+    uv run --dev mypy --strict --extra-checks {{ python_dirs }}
 
 # Reformat code
 format:
-    uv run --dev ruff check --fix-only *.py
-    uv run --dev ruff format *.py
-    -uv run --dev docformatter --in-place *.py
+    uv run --dev ruff check --fix-only --unsafe-fixes {{ python_dirs }}
+    uv run --dev ruff format {{ python_dirs }}
+    -uv run --dev docformatter --in-place {{ python_dirs }}
 
