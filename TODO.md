@@ -20,7 +20,7 @@
   prefix
 - Correctly process country flags
 - Download cldr database: https://raw.githubusercontent.com/yui019/emoji-names/refs/heads/main/cldr_annotations_en.xml
-- Reuse download cache mechanismff
+- Reuse download cache mechanism
 - For improved search, get search keywords from cldr annotations
   - Only for snippets already defined (no adding snippets)
   - Remove plural ("s", "'s", "es"), variants ("er" or worker, "ty" of royalty)

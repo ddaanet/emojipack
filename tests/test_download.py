@@ -3,7 +3,7 @@
 import json
 from unittest.mock import patch
 
-from emojipack.download import GEMOJI_JSON_URL, fetch_gemoji_data
+from emojipack.download import GEMOJI_JSON_URL, GemojiEntry, fetch_gemoji_data
 
 SAMPLE_GEMOJI_JSON = [
     {
@@ -27,6 +27,21 @@ SAMPLE_GEMOJI_JSON = [
     },
 ]
 
+EXPECTED_GEMOJI_ENTRIES: list[GemojiEntry] = [
+    {
+        "emoji": "😃",
+        "description": "grinning face with big eyes",
+        "aliases": ["smiley"],
+        "tags": ["happy", "joy", "haha"],
+    },
+    {
+        "emoji": "👍",
+        "description": "thumbs up",
+        "aliases": ["+1", "thumbsup"],
+        "tags": ["approve", "ok"],
+    },
+]
+
 
 def test_fetch_gemoji_data():
     """fetch_gemoji_data requests URL and returns list[GemojiEntry]."""
@@ -34,17 +49,4 @@ def test_fetch_gemoji_data():
         mock_fetch.return_value = json.dumps(SAMPLE_GEMOJI_JSON)
         result = fetch_gemoji_data()
         mock_fetch.assert_called_once_with(GEMOJI_JSON_URL)
-        assert result == [
-            {
-                "emoji": "😃",
-                "description": "grinning face with big eyes",
-                "aliases": ["smiley"],
-                "tags": ["happy", "joy", "haha"],
-            },
-            {
-                "emoji": "👍",
-                "description": "thumbs up",
-                "aliases": ["+1", "thumbsup"],
-                "tags": ["approve", "ok"],
-            },
-        ]
+        assert result == EXPECTED_GEMOJI_ENTRIES
