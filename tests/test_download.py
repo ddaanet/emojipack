@@ -109,14 +109,12 @@ def test_fetch_with_cache_sends_conditional_headers(cache_dir: Path):
     """fetch_with_cache sends If-None-Match and If-Modified-Since headers."""
     cache_dir.mkdir()
     (cache_dir / "test.cache").write_text("cached content")
-    (cache_dir / "test.meta.json").write_text(
-        json.dumps(
-            {
-                "url": "http://example.com",
-                "etag": '"old-etag"',
-                "last_modified": "Mon, 01 Jan 2020 00:00:00 GMT",
-            }
-        )
+    write_cache_metadata(
+        cache_dir,
+        "test",
+        "http://example.com",
+        '"old-etag"',
+        "Mon, 01 Jan 2020 00:00:00 GMT",
     )
 
     with patch("emojipack.download.requests.get") as mock_get:
@@ -138,14 +136,12 @@ def test_fetch_with_cache_uses_cache_on_304(cache_dir: Path):
     """fetch_with_cache returns cached content on 304 response."""
     cache_dir.mkdir()
     (cache_dir / "test.cache").write_text("cached content")
-    (cache_dir / "test.meta.json").write_text(
-        json.dumps(
-            {
-                "url": "http://example.com",
-                "etag": '"etag"',
-                "last_modified": "Mon, 01 Jan 2020 00:00:00 GMT",
-            }
-        )
+    write_cache_metadata(
+        cache_dir,
+        "test",
+        "http://example.com",
+        '"etag"',
+        "Mon, 01 Jan 2020 00:00:00 GMT",
     )
 
     with patch("emojipack.download.requests.get") as mock_get:
@@ -162,14 +158,12 @@ def test_fetch_with_cache_updates_cache_on_200(cache_dir: Path):
     """fetch_with_cache updates cache with new content on 200 response."""
     cache_dir.mkdir()
     (cache_dir / "test.cache").write_text("old content")
-    (cache_dir / "test.meta.json").write_text(
-        json.dumps(
-            {
-                "url": "http://example.com",
-                "etag": '"old-etag"',
-                "last_modified": "Mon, 01 Jan 2020 00:00:00 GMT",
-            }
-        )
+    write_cache_metadata(
+        cache_dir,
+        "test",
+        "http://example.com",
+        '"old-etag"',
+        "Mon, 01 Jan 2020 00:00:00 GMT",
     )
 
     with patch("emojipack.download.requests.get") as mock_get:
