@@ -34,12 +34,12 @@ agent:
 test *ARGS:
     uv run --dev pytest {{ ARGS }}
 
+python_dirs := "src tests"
+
 # Remove caches and build files
 clean:
-    rm -rf __pycache__ .mypy_cache .venv build
-
-python_dirs := "src tests"
-python_files := shell("find " + python_dirs + " -name *.py")
+    find {{ python_dirs }} -type d -name '__pycache__' | xargs rm -rf
+    rm -rf .*_cache .venv build
 
 # Static code analysis and style checks
 check:
@@ -60,4 +60,3 @@ format:
     uv run --dev ruff check --fix-only --unsafe-fixes {{ python_dirs }}
     uv run --dev ruff format {{ python_dirs }}
     -uv run --dev docformatter --in-place {{ python_dirs }}
-
