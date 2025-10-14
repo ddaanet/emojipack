@@ -32,7 +32,10 @@ class AlfredSnippet:
             raise ValueError(msg)
         capitalized_description = description[0].upper() + description[1:]
         tags = ", ".join(entry["tags"])
-        name = f"{entry['emoji']} {capitalized_description} - {tags}"
+        if tags:
+            name = f"{entry['emoji']} {capitalized_description} - {tags}"
+        else:
+            name = f"{entry['emoji']} {capitalized_description}"
         return cls(
             keyword=alias.replace("_", " "),
             name=name,

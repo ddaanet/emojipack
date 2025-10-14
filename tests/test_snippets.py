@@ -1,7 +1,12 @@
 """Snippet generation tests for emojipack."""
 
+from typing import TYPE_CHECKING
+
 from emojipack.snippets import AlfredSnippet, generate_uid
 from tests.test_download import EXPECTED_GEMOJI_ENTRIES
+
+if TYPE_CHECKING:
+    from emojipack.download import GemojiEntry
 
 
 def test_generate_uid():
@@ -30,6 +35,18 @@ def test_alfred_snippet_from_gemoji_multiple_aliases():
     snippet = AlfredSnippet.from_gemoji(entry, "thumbsup")
     assert snippet.keyword == "thumbsup"
     assert snippet.uid == "thumbsup-1F44D"
+
+
+def test_alfred_snippet_from_gemoji_no_tags():
+    """AlfredSnippet.from_gemoji omits dash when no tags."""
+    entry: GemojiEntry = {
+        "emoji": "😁",
+        "description": "beaming face with smiling eyes",
+        "aliases": ["grin"],
+        "tags": [],
+    }
+    snippet = AlfredSnippet.from_gemoji(entry, "grin")
+    assert snippet.name == "😁 Beaming face with smiling eyes"
 
 
 def test_alfred_snippet_to_json():
