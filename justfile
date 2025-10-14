@@ -48,12 +48,12 @@ check:
     uv run --dev ruff format --check {{ python_dirs }}
     uv run --dev docformatter --check {{ python_dirs }}
     uv run --dev ty check  # First, because it's faster than mypy
-    uv run --dev mypy --strict {{ python_dirs }}
+    uv run --dev mypy
 
 # Static type checking only
 mypy:
     uv run --dev ty check  # First, because it's faster than mypy
-    uv run --dev mypy --strict --extra-checks {{ python_dirs }}
+    uv run --dev mypy
 
 # Reformat code
 format:

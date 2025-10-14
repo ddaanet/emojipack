@@ -49,18 +49,38 @@ ignore = [
     "D213",     # multi-line docstring summary should start at the first line
     "S603",     # subprocess call
     "PLR2004",  # Magic value used in comparison
-    "COM812",   # Missing trailing comma (disable when using formatter)
+
+    # Rules that should be disabled when using ruff as a formatter.
+    "W191",     # tab-indentation
+    "E111",     # indentation-with-invalid-multiple
+    "E114",     # indentation-with-invalid-multiple-comment
+    "E117",     # over-indented
+    "D206",     # docstring-tab-indentation
+    "D300",     # triple-single-quotes
+    "Q000",     # bad-quotes-inline-string
+    "Q001",     # bad-quotes-multiline-string
+    "Q002",     # bad-quotes-docstring
+    "Q003",     # avoidable-escaped-quote
+    "COM812",   # missing-trailing-comma
+    "COM819",   # prohibited-trailing-comma
+    "ISC002",   # multi-line-implicit-string-concatenation
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
-    "ANN201",  # Missing return type for public function
-    "ANN202",  # Missing return type for private function
-    "S101",   # Allow assert statements in tests
-    # "ARG",    # Allow unused function arguments in tests
+    "ANN201",   # Missing return type for public function
+    "ANN202",   # Missing return type for private function
+    "S101",     # Allow assert statements in tests
+    "ARG",      # Allow unused function arguments in tests
     # "FBT",    # Ignore boolean traps in test parameters
 ]
 
+[tool.mypy]
+files = ["src", "tests"]
+strict = true
+extra_checks = true
+
 [[tool.mypy.overrides]]
-module = ["tests.*"]
+module = "tests.*"
 disallow_untyped_defs = false
+disallow_incomplete_defs = false
