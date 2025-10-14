@@ -43,6 +43,19 @@ def cache_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return test_cache
 
 
+def write_cache_metadata(
+    cache_dir: Path,
+    name: str,
+    url: str,
+    etag: str | None = None,
+    last_modified: str | None = None,
+) -> None:
+    """Write cache metadata file for testing."""
+    cache_dir.mkdir(exist_ok=True)
+    metadata = {"url": url, "etag": etag, "last_modified": last_modified}
+    (cache_dir / f"{name}.meta.json").write_text(json.dumps(metadata))
+
+
 def test_fetch_gemoji_data(cache_dir: Path):
     """fetch_gemoji_data requests URL and returns list[GemojiEntry]."""
     with patch("emojipack.download.fetch_with_cache") as mock_fetch:
@@ -179,3 +192,32 @@ def test_fetch_with_cache_updates_cache_on_200(cache_dir: Path):
             "etag": '"new-etag"',
             "last_modified": "Tue, 01 Jan 2021 00:00:00 GMT",
         }
+
+
+def test_fetch_with_cache_ignores_cache_on_url_mismatch(cache_dir: Path):
+    """fetch_with_cache ignores cache if URL doesn't match metadata."""
+    cache_dir.mkdir()
+    (cache_dir / "test.cache").write_text("cached content")
+    write_cache_metadata(
+        cache_dir,
+        "test",
+        "http://old-url.com",
+        '"old-etag"',
+        "Mon, 01 Jan 2020 00:00:00 GMT",
+    )
+
+    with patch("emojipack.download.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "new content"
+        mock_response.headers = {
+            "ETag": '"new-etag"',
+            "Last-Modified": "Tue, 01 Jan 2021 00:00:00 GMT",
+        }
+        mock_get.return_value = mock_response
+
+        result = fetch_with_cache("test", "http://new-url.com")
+
+        call_kwargs = mock_get.call_args[1]
+        assert "If-None-Match" not in call_kwargs.get("headers", {})
+        assert result == "new content"
