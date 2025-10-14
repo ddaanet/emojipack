@@ -14,7 +14,8 @@
 
 - #init Initialize Git repository at project start, commit initial state
 - #commit Commit with short informative messages
-- Use gitmojis (https://gitmoji.dev) as unicode
+- #adblock Do not advertise yourself in commit messages
+- #gitmoji Use gitmojis (https://gitmoji.dev) as unicode
 - Use leading comma for temporary files in git trees, add ",\*" to gitignore if
   needed
 
