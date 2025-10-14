@@ -57,17 +57,8 @@ def fetch_with_cache(name: str, url: str) -> str:
 
 def fetch_gemoji_data() -> list[GemojiEntry]:
     """Fetch emoji data from github/gemoji repository."""
-    cache_file = CACHE_DIR / "gemoji.json"
-
-    if cache_file.exists():
-        raw_data = json.loads(cache_file.read_text())
-    else:
-        response = requests.get(GEMOJI_JSON_URL, timeout=30)
-        response.raise_for_status()
-        raw_data = response.json()
-
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        cache_file.write_text(json.dumps(raw_data))
+    text = fetch_with_cache("gemoji", GEMOJI_JSON_URL)
+    raw_data = json.loads(text)
 
     return [
         {
