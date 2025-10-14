@@ -4,11 +4,15 @@ import json
 import plistlib
 import zipfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from emojipack.pack import SnippetPack
 from emojipack.snippets import AlfredSnippet
 
 from .test_download import EXPECTED_GEMOJI_ENTRIES
+
+if TYPE_CHECKING:
+    from emojipack.download import GemojiEntry
 
 
 def test_snippet_pack_info_plist():
@@ -73,3 +77,20 @@ def test_snippet_pack_write_macos_plist(tmp_path: Path):
         {"phrase": "😃", "shortcut": ":smiley:"},
         {"phrase": "👍", "shortcut": ":thumbsup:"},
     ]
+
+
+def test_snippet_pack_write_macos_plist_replaces_spaces(tmp_path: Path):
+    """SnippetPack.write_macos_plist replaces spaces with dashes."""
+    entry: GemojiEntry = {
+        "emoji": "🎅",
+        "description": "Santa Claus",
+        "aliases": ["santa_claus"],
+        "tags": [],
+    }
+    snippet = AlfredSnippet.from_gemoji(entry, "santa_claus")
+    pack = SnippetPack(prefix=":", suffix=":", snippets=[snippet])
+    output_file = tmp_path / "expansions.plist"
+    pack.write_macos_plist(output_file)
+    with output_file.open("rb") as f:
+        data = plistlib.load(f)
+    assert data == [{"phrase": "🎅", "shortcut": ":santa-claus:"}]

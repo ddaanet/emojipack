@@ -39,7 +39,10 @@ class SnippetPack:
         expansions = [
             {
                 "phrase": snippet.snippet,
-                "shortcut": f"{self.prefix}{snippet.keyword}{self.suffix}",
+                "shortcut": (
+                    f"{self.prefix}{snippet.keyword.replace(' ', '-')}"
+                    f"{self.suffix}"
+                ),
             }
             for snippet in self.snippets
         ]
