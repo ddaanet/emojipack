@@ -6,7 +6,7 @@ help:
 
 # Generate Emoji Pack
 generate *ARGS:
-    uv run scripts/emojipack-generator {{ ARGS }}
+    uv run emojipack-generator {{ ARGS }}
 
 # Generate Emoji Pack and open with Alfred
 install: generate
