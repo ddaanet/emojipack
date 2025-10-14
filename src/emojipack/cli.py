@@ -1,4 +1,6 @@
 """Command line interface for emojipack."""
+# ruff: noqa: FBT001, FBT002
+# Boolean arguments are required for typer CLI flags
 
 from pathlib import Path
 
@@ -12,9 +14,8 @@ app = typer.Typer()
 
 
 @app.command()
-def main() -> None:
+def main(macos: bool = False) -> None:
     """Generate Emoji Snippet Pack for Alfred."""
-    output_path = Path("Emoji Pack.alfredsnippets")
     emoji_data = fetch_gemoji_data()
     snippets = [
         AlfredSnippet.from_gemoji(entry, alias)
@@ -22,5 +23,10 @@ def main() -> None:
         for alias in entry["aliases"]
     ]
     pack = SnippetPack(prefix=":", suffix=":", snippets=snippets)
-    pack.write(output_path)
+    if macos:
+        output_path = Path("Snippet Pack.plist")
+        pack.write_macos_plist(output_path)
+    else:
+        output_path = Path("Emoji Pack.alfredsnippets")
+        pack.write(output_path)
     typer.echo(f"Generated {output_path} with {len(snippets)} snippets")
