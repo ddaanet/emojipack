@@ -50,7 +50,7 @@ def test_snippet_pack_write_alfredsnippets(tmp_path: Path):
         assert snippet_data == {
             "alfredsnippet": {
                 "keyword": "smiley",
-                "name": "grinning face with big eyes",
+                "name": "😃 Grinning face with big eyes - happy, joy, haha",
                 "snippet": "😃",
                 "uid": "smiley-1F603",
                 "dontautoexpand": False,

@@ -19,7 +19,7 @@ def test_alfred_snippet_from_gemoji():
     entry = EXPECTED_GEMOJI_ENTRIES[0]
     snippet = AlfredSnippet.from_gemoji(entry, "smiley")
     assert snippet.keyword == "smiley"
-    assert snippet.name == "grinning face with big eyes"
+    assert snippet.name == "😃 Grinning face with big eyes - happy, joy, haha"
     assert snippet.snippet == "😃"
     assert snippet.uid == "smiley-1F603"
 
@@ -38,7 +38,9 @@ def test_alfred_snippet_to_json():
     snippet = AlfredSnippet.from_gemoji(entry, "smiley")
     json_data = snippet.to_json()
     assert json_data["alfredsnippet"]["keyword"] == "smiley"
-    assert json_data["alfredsnippet"]["name"] == "grinning face with big eyes"
+    assert json_data["alfredsnippet"]["name"] == (
+        "😃 Grinning face with big eyes - happy, joy, haha"
+    )
     assert json_data["alfredsnippet"]["snippet"] == "😃"
     assert json_data["alfredsnippet"]["uid"] == "smiley-1F603"
     assert json_data["alfredsnippet"]["dontautoexpand"] is False

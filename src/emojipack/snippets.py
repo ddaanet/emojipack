@@ -26,9 +26,16 @@ class AlfredSnippet:
         if alias not in entry["aliases"]:
             msg = f"Alias '{alias}' not in {entry['aliases']}"
             raise ValueError(msg)
+        description = entry["description"]
+        if not description:
+            msg = "Description must not be empty"
+            raise ValueError(msg)
+        capitalized_description = description[0].upper() + description[1:]
+        tags = ", ".join(entry["tags"])
+        name = f"{entry['emoji']} {capitalized_description} - {tags}"
         return cls(
             keyword=alias.replace("_", " "),
-            name=entry["description"],
+            name=name,
             snippet=entry["emoji"],
             uid=generate_uid(alias, entry["emoji"]),
         )
