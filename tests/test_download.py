@@ -6,7 +6,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from emojipack.download import GEMOJI_JSON_URL, fetch_gemoji_data
+from emojipack.download import (
+    GEMOJI_JSON_URL,
+    fetch_gemoji_data,
+    fetch_with_cache,
+)
 
 SAMPLE_GEMOJI_JSON = [
     {
@@ -93,3 +97,117 @@ def test_cached_data_returned_without_new_request(cache_dir: Path):
 
         mock_get.assert_not_called()
         assert [r["emoji"] for r in result] == ["😃", "👍"]
+
+
+def test_fetch_with_cache_downloads_on_cache_miss(cache_dir: Path):
+    """fetch_with_cache downloads and saves text + metadata on cache miss."""
+    with patch("emojipack.download.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.text = '{"test": "data"}'
+        mock_response.headers = {
+            "ETag": '"abc123"',
+            "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT",
+        }
+        mock_get.return_value = mock_response
+
+        result = fetch_with_cache("test", "http://example.com")
+
+        assert result == '{"test": "data"}'
+        cache_file = cache_dir / "test.cache"
+        assert cache_file.read_text() == '{"test": "data"}'
+        meta_file = cache_dir / "test.meta.json"
+        metadata = json.loads(meta_file.read_text())
+        assert metadata == {
+            "url": "http://example.com",
+            "etag": '"abc123"',
+            "last_modified": "Wed, 21 Oct 2015 07:28:00 GMT",
+        }
+
+
+def test_fetch_with_cache_sends_conditional_headers(cache_dir: Path):
+    """fetch_with_cache sends If-None-Match and If-Modified-Since headers."""
+    cache_dir.mkdir()
+    (cache_dir / "test.cache").write_text("cached content")
+    (cache_dir / "test.meta.json").write_text(
+        json.dumps(
+            {
+                "url": "http://example.com",
+                "etag": '"old-etag"',
+                "last_modified": "Mon, 01 Jan 2020 00:00:00 GMT",
+            }
+        )
+    )
+
+    with patch("emojipack.download.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.status_code = 304
+        mock_get.return_value = mock_response
+
+        fetch_with_cache("test", "http://example.com")
+
+        call_kwargs = mock_get.call_args[1]
+        assert call_kwargs["headers"]["If-None-Match"] == '"old-etag"'
+        assert (
+            call_kwargs["headers"]["If-Modified-Since"]
+            == "Mon, 01 Jan 2020 00:00:00 GMT"
+        )
+
+
+def test_fetch_with_cache_uses_cache_on_304(cache_dir: Path):
+    """fetch_with_cache returns cached content on 304 response."""
+    cache_dir.mkdir()
+    (cache_dir / "test.cache").write_text("cached content")
+    (cache_dir / "test.meta.json").write_text(
+        json.dumps(
+            {
+                "url": "http://example.com",
+                "etag": '"etag"',
+                "last_modified": "Mon, 01 Jan 2020 00:00:00 GMT",
+            }
+        )
+    )
+
+    with patch("emojipack.download.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.status_code = 304
+        mock_get.return_value = mock_response
+
+        result = fetch_with_cache("test", "http://example.com")
+
+        assert result == "cached content"
+
+
+def test_fetch_with_cache_updates_cache_on_200(cache_dir: Path):
+    """fetch_with_cache updates cache with new content on 200 response."""
+    cache_dir.mkdir()
+    (cache_dir / "test.cache").write_text("old content")
+    (cache_dir / "test.meta.json").write_text(
+        json.dumps(
+            {
+                "url": "http://example.com",
+                "etag": '"old-etag"',
+                "last_modified": "Mon, 01 Jan 2020 00:00:00 GMT",
+            }
+        )
+    )
+
+    with patch("emojipack.download.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "new content"
+        mock_response.headers = {
+            "ETag": '"new-etag"',
+            "Last-Modified": "Tue, 01 Jan 2021 00:00:00 GMT",
+        }
+        mock_get.return_value = mock_response
+
+        result = fetch_with_cache("test", "http://example.com")
+
+        assert result == "new content"
+        assert (cache_dir / "test.cache").read_text() == "new content"
+        metadata = json.loads((cache_dir / "test.meta.json").read_text())
+        assert metadata == {
+            "url": "http://example.com",
+            "etag": '"new-etag"',
+            "last_modified": "Tue, 01 Jan 2021 00:00:00 GMT",
+        }
