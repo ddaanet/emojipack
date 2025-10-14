@@ -33,3 +33,15 @@ class SnippetPack:
                 filename = f"{snippet.uid}.json"
                 content = json.dumps(snippet.to_json(), ensure_ascii=False)
                 zf.writestr(filename, content)
+
+    def write_macos_plist(self, output_path: Path) -> None:
+        """Write macOS text expansions plist file."""
+        expansions = [
+            {
+                "phrase": snippet.snippet,
+                "shortcut": f"{self.prefix}{snippet.keyword}{self.suffix}",
+            }
+            for snippet in self.snippets
+        ]
+        with output_path.open("wb") as f:
+            plistlib.dump(expansions, f)

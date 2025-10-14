@@ -56,3 +56,20 @@ def test_snippet_pack_write_alfredsnippets(tmp_path: Path):
                 "dontautoexpand": False,
             }
         }
+
+
+def test_snippet_pack_write_macos_plist(tmp_path: Path):
+    """SnippetPack.write_macos_plist writes macOS text expansions."""
+    snippets = [
+        AlfredSnippet.from_gemoji(EXPECTED_GEMOJI_ENTRIES[0], "smiley"),
+        AlfredSnippet.from_gemoji(EXPECTED_GEMOJI_ENTRIES[1], "thumbsup"),
+    ]
+    pack = SnippetPack(prefix=":", suffix=":", snippets=snippets)
+    output_file = tmp_path / "expansions.plist"
+    pack.write_macos_plist(output_file)
+    with output_file.open("rb") as f:
+        data = plistlib.load(f)
+    assert data == [
+        {"phrase": "😃", "shortcut": ":smiley:"},
+        {"phrase": "👍", "shortcut": ":thumbsup:"},
+    ]
