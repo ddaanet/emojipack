@@ -19,7 +19,6 @@ class AlfredSnippet:
     name: str
     snippet: str
     uid: str
-    dontautoexpand: bool
 
     @classmethod
     def from_gemoji(cls, entry: GemojiEntry, alias: str) -> "AlfredSnippet":
@@ -32,5 +31,16 @@ class AlfredSnippet:
             name=entry["description"],
             snippet=entry["emoji"],
             uid=generate_uid(alias, entry["emoji"]),
-            dontautoexpand=False,
         )
+
+    def to_json(self) -> dict[str, dict[str, str | bool]]:
+        """Convert to Alfred snippet JSON format."""
+        return {
+            "alfredsnippet": {
+                "keyword": self.keyword,
+                "name": self.name,
+                "snippet": self.snippet,
+                "uid": self.uid,
+                "dontautoexpand": False,
+            }
+        }

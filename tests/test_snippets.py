@@ -22,7 +22,6 @@ def test_alfred_snippet_from_gemoji():
     assert snippet.name == "grinning face with big eyes"
     assert snippet.snippet == "😃"
     assert snippet.uid == "smiley-1F603"
-    assert snippet.dontautoexpand is False
 
 
 def test_alfred_snippet_from_gemoji_multiple_aliases():
@@ -31,3 +30,15 @@ def test_alfred_snippet_from_gemoji_multiple_aliases():
     snippet = AlfredSnippet.from_gemoji(entry, "thumbsup")
     assert snippet.keyword == "thumbsup"
     assert snippet.uid == "thumbsup-1F44D"
+
+
+def test_alfred_snippet_to_json():
+    """AlfredSnippet.to_json generates JSON dict for Alfred."""
+    entry = EXPECTED_GEMOJI_ENTRIES[0]
+    snippet = AlfredSnippet.from_gemoji(entry, "smiley")
+    json_data = snippet.to_json()
+    assert json_data["alfredsnippet"]["keyword"] == "smiley"
+    assert json_data["alfredsnippet"]["name"] == "grinning face with big eyes"
+    assert json_data["alfredsnippet"]["snippet"] == "😃"
+    assert json_data["alfredsnippet"]["uid"] == "smiley-1F603"
+    assert json_data["alfredsnippet"]["dontautoexpand"] is False
