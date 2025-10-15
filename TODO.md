@@ -8,8 +8,8 @@
 - Generate second summary, preprocess Joel's snippets by converting to NFD
   - `nfd = unicodedata.normalize('NFD', emoji)`
 - Evaluate situation and decide if further analysis is needed.
-- Remove needless keywords that have another keyword for the same emoji as
-  prefix
+- Remove needless search words that have another search word for the same emoji
+  as prefix
 - Correctly process country flags
 - Provide Joel compatibility packs
   1. Keyword coverage: Support all keywords from Joel. Snippet may change
@@ -22,7 +22,6 @@
   3. uid stability: for each snippet, retrieve uid from Joel and reuse (unify
      emoji first). This one is not subject to regression. Extract list of uids
      by keyword, store in git, add CLI option --joels-uid to reuse them.
-
 - Download cldr database: https://raw.githubusercontent.com/yui019/emoji-names/refs/heads/main/cldr_annotations_en.xml
   - Filter out emojis that are not in snippets.
   - Remove plural ("s", "'s", "es"), variants ("er" or worker, "ty" of royalty,
@@ -30,8 +29,6 @@
   - Remove words that are present in matching snippets keywords and names.
     keyword "oil drum" -> omit search words "oil" and "drum"
   - Produce mapping of emoji (unified) to list of extra search words.
-- For analysis: for each emoji (all snippets), list words present in keyword
-  and name in our data and in cldr, display words missing on either side.
 - Analysis of additional search word distribution. Consider strategies for
   removing keywords. Keep only the n first, remove the most frequently used,
   maybe other.
