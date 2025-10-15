@@ -111,3 +111,64 @@ def test_snippet_pack_read(tmp_path: Path):
     assert loaded_pack.prefix == pack.prefix
     assert loaded_pack.suffix == pack.suffix
     assert loaded_pack.snippets == pack.snippets
+
+
+def test_snippet_pack_set_icon(tmp_path: Path):
+    """SnippetPack.set_icon sets the _icon attribute."""
+    pack = SnippetPack(prefix=":", suffix=":")
+    icon_path = tmp_path / "test_icon.png"
+    icon_path.write_bytes(b"fake_png_data")
+    pack.set_icon(icon_path)
+    assert pack._icon == icon_path
+
+
+def test_snippet_pack_write_with_icon(tmp_path: Path):
+    """SnippetPack.write includes icon.png when icon is set."""
+    snippets = [
+        AlfredSnippet.from_gemoji(EXPECTED_GEMOJI_ENTRIES[0], "smiley"),
+    ]
+    pack = SnippetPack(prefix=":", suffix=":", snippets=snippets)
+    icon_path = tmp_path / "test_icon.png"
+    icon_data = b"fake_png_data"
+    icon_path.write_bytes(icon_data)
+    pack.set_icon(icon_path)
+    output_file = tmp_path / "test.alfredsnippets"
+    pack.write(output_file)
+
+    with zipfile.ZipFile(output_file) as zf:
+        assert "icon.png" in zf.namelist()
+        assert zf.read("icon.png") == icon_data
+
+
+def test_snippet_pack_write_without_icon(tmp_path: Path):
+    """SnippetPack.write works without icon (backward compatibility)."""
+    snippets = [
+        AlfredSnippet.from_gemoji(EXPECTED_GEMOJI_ENTRIES[0], "smiley"),
+    ]
+    pack = SnippetPack(prefix=":", suffix=":", snippets=snippets)
+    output_file = tmp_path / "test.alfredsnippets"
+    pack.write(output_file)
+
+    with zipfile.ZipFile(output_file) as zf:
+        assert "icon.png" not in zf.namelist()
+        assert "info.plist" in zf.namelist()
+        assert "smiley-1F603.json" in zf.namelist()
+
+
+def test_snippet_pack_read_skips_icon(tmp_path: Path):
+    """SnippetPack.read skips icon.png file."""
+    snippets = [
+        AlfredSnippet.from_gemoji(EXPECTED_GEMOJI_ENTRIES[0], "smiley"),
+    ]
+    pack = SnippetPack(prefix=":", suffix=":", snippets=snippets)
+    icon_path = tmp_path / "test_icon.png"
+    icon_path.write_bytes(b"fake_png_data")
+    pack.set_icon(icon_path)
+    output_file = tmp_path / "test.alfredsnippets"
+    pack.write(output_file)
+
+    loaded_pack = SnippetPack.read(output_file)
+
+    assert loaded_pack.prefix == pack.prefix
+    assert loaded_pack.suffix == pack.suffix
+    assert loaded_pack.snippets == pack.snippets

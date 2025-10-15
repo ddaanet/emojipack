@@ -72,9 +72,10 @@ ignore = [
 "tests/**/*.py" = [
     "ANN201",   # Missing return type for public function
     "ANN202",   # Missing return type for private function
-    "S101",     # Allow assert statements in tests
-    "ARG",      # Allow unused function arguments in tests
+    "S101",     # Assert statements
+    "ARG",      # Unused function arguments
     # "FBT",    # Ignore boolean traps in test parameters
+    "SLF001",   # Private member accessed
 ]
 
 [tool.mypy]

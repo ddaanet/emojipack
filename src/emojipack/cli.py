@@ -2,6 +2,7 @@
 # ruff: noqa: FBT001, FBT002
 # Boolean arguments are required for typer CLI flags
 
+import importlib.resources
 from pathlib import Path
 
 import typer
@@ -27,6 +28,8 @@ def main(macos: bool = False) -> None:
         output_path = Path("Snippet Pack.plist")
         pack.write_macos_plist(output_path)
     else:
+        with importlib.resources.path("emojipack", "icon.png") as icon_path:
+            pack.set_icon(icon_path)
         output_path = Path("Emoji Pack.alfredsnippets")
         pack.write(output_path)
     typer.echo(f"Generated {output_path} with {len(snippets)} snippets")

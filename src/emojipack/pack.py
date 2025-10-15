@@ -16,6 +16,7 @@ class SnippetPack:
     prefix: str
     suffix: str
     snippets: list[AlfredSnippet] = field(default_factory=list)
+    _icon: Path | None = None
 
     def create_info_plist(self) -> str:
         """Create info.plist content with prefix and suffix settings."""
@@ -25,10 +26,16 @@ class SnippetPack:
         }
         return plistlib.dumps(data).decode()
 
+    def set_icon(self, path: Path) -> None:
+        """Set the icon to include in the snippet pack."""
+        self._icon = path
+
     def write(self, output_path: Path) -> None:
         """Write .alfredsnippets zip file with info.plist and snippets."""
         with zipfile.ZipFile(output_path, "w") as zf:
             zf.writestr("info.plist", self.create_info_plist())
+            if self._icon:
+                zf.write(self._icon, "icon.png")
             for snippet in self.snippets:
                 filename = f"{snippet.uid}.json"
                 content = json.dumps(snippet.to_json(), ensure_ascii=False)
@@ -58,7 +65,7 @@ class SnippetPack:
             suffix = plist_data.get("snippetkeywordsuffix", "")
             snippets = []
             for name in zf.namelist():
-                if name == "info.plist":
+                if name in ("info.plist", "icon.png"):
                     continue
                 snippet_data = json.loads(zf.read(name))
                 alfred_snippet = snippet_data["alfredsnippet"]
