@@ -48,3 +48,25 @@ class SnippetPack:
         ]
         with output_path.open("wb") as f:
             plistlib.dump(expansions, f)
+
+    @classmethod
+    def read(cls, input_path: Path) -> "SnippetPack":
+        """Read .alfredsnippets zip file and return SnippetPack."""
+        with zipfile.ZipFile(input_path) as zf:
+            plist_data = plistlib.loads(zf.read("info.plist"))
+            prefix = plist_data.get("snippetkeywordprefix", "")
+            suffix = plist_data.get("snippetkeywordsuffix", "")
+            snippets = []
+            for name in zf.namelist():
+                if name == "info.plist":
+                    continue
+                snippet_data = json.loads(zf.read(name))
+                alfred_snippet = snippet_data["alfredsnippet"]
+                snippet = AlfredSnippet(
+                    keyword=alfred_snippet["keyword"],
+                    name=alfred_snippet["name"],
+                    snippet=alfred_snippet["snippet"],
+                    uid=alfred_snippet["uid"],
+                )
+                snippets.append(snippet)
+        return cls(prefix=prefix, suffix=suffix, snippets=snippets)

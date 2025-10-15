@@ -1,6 +1,5 @@
 # TODO
 
-- Loading alfredsnippets.
 - Compute found/added/removed emoji (by content) between Joel and me.
 - Generate summary of changes: markdown section added emojis, removed emojis.
   - Sort emojis by unified code points

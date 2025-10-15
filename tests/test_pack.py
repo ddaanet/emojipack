@@ -94,3 +94,20 @@ def test_snippet_pack_write_macos_plist_replaces_spaces(tmp_path: Path):
     with output_file.open("rb") as f:
         data = plistlib.load(f)
     assert data == [{"phrase": "🎅", "shortcut": ":santa-claus:"}]
+
+
+def test_snippet_pack_read(tmp_path: Path):
+    """SnippetPack.read loads .alfredsnippets zip with snippets."""
+    snippets = [
+        AlfredSnippet.from_gemoji(EXPECTED_GEMOJI_ENTRIES[0], "smiley"),
+        AlfredSnippet.from_gemoji(EXPECTED_GEMOJI_ENTRIES[1], "thumbsup"),
+    ]
+    pack = SnippetPack(prefix=":", suffix=":", snippets=snippets)
+    output_file = tmp_path / "test.alfredsnippets"
+    pack.write(output_file)
+
+    loaded_pack = SnippetPack.read(output_file)
+
+    assert loaded_pack.prefix == pack.prefix
+    assert loaded_pack.suffix == pack.suffix
+    assert loaded_pack.snippets == pack.snippets
