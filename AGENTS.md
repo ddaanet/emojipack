@@ -57,6 +57,12 @@ To add a feature or fix a bug:
 Work in small iterations. Add one failing test, implement, check, commit,
 repeat
 
+#### Testing
+
+- When comparing complex structures (like lists or dicts), do not assert the
+  value of individual members, instead assert the value of the whole object. If
+  some items must be ignored, remove them before assert.
+
 ### Environment and Tooling
 
 #### Python
