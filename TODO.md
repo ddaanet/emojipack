@@ -1,14 +1,38 @@
 # TODO
 
-- Create snippet pack class for MacOS text expansions
-- compare to joel's
+- Loading alfredsnippets.
+- Compute found/added/removed emoji (by content) between Joel and me.
+- Generate summary of changes: markdown section added emojis, removed emojis.
+  - Sort emojis by unified code points
+  - For each emoji, display all snippets
+  - For each snippet, display content, keyword, name
+- Generate second summary, preprocess Joel's snippets by converting to NFD
+  - `nfd = unicodedata.normalize('NFD', emoji)`
+- Evaluate situation and decide if further analysis is needed.
 - Remove needless keywords that have another keyword for the same emoji as
   prefix
 - Correctly process country flags
-- Download cldr database: https://raw.githubusercontent.com/yui019/emoji-names/refs/heads/main/cldr_annotations_en.xml
-- Reuse download cache mechanism
-- For improved search, get search keywords from cldr annotations
-  - Only for snippets already defined (no adding snippets)
-  - Remove plural ("s", "'s", "es"), variants ("er" or worker, "ty" of royalty)
-  - Remove keywords already present in trigger: "oil drum" -> "oil" and "drum"
+- Provide Joel compatibility packs
+  1. Keyword coverage: Support all keywords from Joel. Snippet may change
+     slightly (combined/unified). Produce list of missing keywords for
+     regression testing.
+  2. Search word coverage: for each emoji, ensure the keyword + name for each
+     snippet in our pack includes all the words present in keyword + name in
+     Joel's. Produce list of missing search words by emoji, for regression
+     testing.
+  3. uid stability: for each snippet, retrieve uid from Joel and reuse (unify
+     emoji first). This one is not subject to regression. Extract list of uids
+     by keyword, store in git, add CLI option --joels-uid to reuse them.
 
+- Download cldr database: https://raw.githubusercontent.com/yui019/emoji-names/refs/heads/main/cldr_annotations_en.xml
+  - Filter out emojis that are not in snippets.
+  - Remove plural ("s", "'s", "es"), variants ("er" or worker, "ty" of royalty,
+    only if base word is in list: "fireworks" should not be singular)
+  - Remove words that are present in matching snippets keywords and names.
+    keyword "oil drum" -> omit search words "oil" and "drum"
+  - Produce mapping of emoji (unified) to list of extra search words.
+- For analysis: for each emoji (all snippets), list words present in keyword
+  and name in our data and in cldr, display words missing on either side.
+- Analysis of additional search word distribution. Consider strategies for
+  removing keywords. Keep only the n first, remove the most frequently used,
+  maybe other.
