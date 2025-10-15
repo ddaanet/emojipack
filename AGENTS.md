@@ -58,6 +58,7 @@ repeat
 
 #### Testing
 
+- To run specific tests, use `just agent-test`, it's a wrapper for pytest.
 - When comparing complex structures (like lists or dicts), do not assert the
   value of individual members, instead assert the value of the whole object. If
   some items must be ignored, remove them before assert.

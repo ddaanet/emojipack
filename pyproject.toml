@@ -81,8 +81,12 @@ ignore = [
 files = ["src", "tests"]
 strict = true
 extra_checks = true
+error_summary = false
 
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+
+[tool.ty.terminal]
+error-on-warning = true
