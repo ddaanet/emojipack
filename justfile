@@ -1,6 +1,6 @@
 _ := require("uv")
 
-# Display available recipes.
+# Display available recipes
 [default]
 [group('general')]
 help:
