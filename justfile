@@ -1,3 +1,4 @@
+[private]
 _ := require("uv")
 
 # Display available recipes
@@ -16,14 +17,65 @@ generate *ARGS:
 install: generate
     open "Emoji Pack.alfredsnippets"
 
-STYLE_OK := '\033[1;92m'
-STYLE_WARNING := '\033[1;93m'
+# Hack to perform string interpolation on variables. Render the content of
+# the variables in a just subprocess, passing in the is_dependency() value.
+# In the subprocess, is_dependency() is always false.
+# Usage, user mode: {{ user-functions + is_dependency() }}
+# Usage, agent mode: {{ agent-functions + is_dependency() }}
+user-functions := 'load () { source <(just _user-functions $1); }; load '
+agent-functions := 'load () { source <(just _agent-functions $1); }; load '
+
+# Common functions for all recipes
+[group('internal')]
+[private]
+_common-functions:
+    #!/bin/cat
+    # exit_with: run command and exit with original status
+    exit_with () { local s=$?; "$@"; exit $s; }
+
+# Common functions for developer recipes, with colored output
+[group('internal')]
+[private]
+_user-functions isdep: _common-functions
+    #!/bin/cat
+    # echo-style STYLE ARGS...
+    # Print ARGS in with STYLE.
+    echo-style () {
+        # Uncomment following line to ignore style if stdout is not a tty.
+        # [ ! -t 1 ] && { shift; echo "$*"; return; }
+        case "$1" in
+            command) echo -n "{{ style('command') }}" ;;
+            error) echo -n "{{ style('error') }}" ;;
+            okay) echo -en '\033[1;92m' ;;
+            warning) echo -en '\033[1;93m' ;;
+        esac
+        shift; echo -e "$*{{ NORMAL }}"
+    }
+    show () { echo-style command "$*"; "$@"; }
+    okay () { echo-style okay "✅ $*"; }
+    warning () { echo-style warning "⚠️  $*"; }
+    error () { echo-style error "❌ $*"; }
+    # No success output when running as dependency.
+    if {{ isdep }}; then okay () { :; }; fi
+
+# Common functions for agent recipes, monochrome output
+[group('internal')]
+[private]
+_agent-functions isdep: _common-functions
+    #!/bin/cat
+    okay () { echo "✅ ${*:-OK}"; }
+    # No output when running as dependency
+    if {{ isdep }}; then okay () { :; }; fi
+    warning () { echo "⚠️  $*"; }
+    error () { echo "❌ $*"; }
 
 # Development workflow: format, test, check
 [group('developer')]
 [no-exit-message]
 dev: format test check-compile check-ruff check-types
-    @echo "{{ STYLE_OK }}✅ OK{{ NORMAL }}"
+    #!/usr/bin/env bash -euo pipefail
+    {{ user-functions + is_dependency() }}
+    okay "Development checks ok."
 
 python_dirs := "src tests"
 
@@ -37,34 +89,19 @@ clean:
 [group('agent')]
 [no-exit-message]
 agent:
-    #!/usr/bin/env bash -uo pipefail
-    # Do not reformat in agent mode, to prevent desync with agent state.
-    mkdir -p build
+    #!/usr/bin/env bash -euo pipefail
+    # Do not reformat code in agent mode, to prevent desync with agent state.
+    {{ agent-functions + is_dependency() }}
     quietly () {
-        echo -n "$1... "
-        shift
-        "$@" &>1 > build/agent.log
-        status=$?
-        if [ $status -eq 0 ]; then
-            echo "OK"
-        else
-            echo "FAIL"
-            cat build/agent.log
-            return $status
-        fi
+        echo -n "$1... "; shift
+        local output=$("$@" &>1) \
+        && echo OK || { local s=$?; echo FAIL; echo -n "$output"; return $s; }
     }
-    run () {
-        quietly "Test suite" just agent-test || return $?
-        quietly "Static analysis" just agent-check || return $?
-        quietly "Code style" just agent-check-format || return $?
-    }
-    if run; then
-        echo "✅ OK"
-    else
-        status=$?
-        echo "❌ FAIL"
-        exit $status
-    fi
+    quietly "Test suite" just agent-test \
+    && quietly "Static analysis" just agent-check \
+    && quietly "Code style" just agent-check-format \
+    && okay \
+    || exit_with error FAIL
 
 # Run test suite
 [group('developer')]
@@ -82,7 +119,6 @@ agent-test *ARGS:
 [group('developer')]
 [no-exit-message]
 check: check-compile check-format check-ruff check-types
-# check-format must be done
 
 [private]
 [group('agent')]
@@ -108,27 +144,22 @@ agent-check-compile:
 [group('developer')]
 [no-exit-message]
 check-ruff: check-format
-    #!/usr/bin/env bash -uo pipefail
+    #!/usr/bin/env bash -euo pipefail
     # Do check-format first to produce the appropriate error message.
-    show () { echo "{{ style("command") }}$@{{ NORMAL }}"; "$@"; return $?; }
-    show uv run --dev ruff check --quiet {{ python_dirs }}; status=$?
-    if [ $status -ne 0 ]; then
-        echo -e "{{ style("error") }}❌ Ruff check failed. Try 'just ruff-fix' to fix.{{ NORMAL }}"
-        exit $status
-    fi
+    {{ user-functions + is_dependency() }}
+    show uv run --dev ruff check --quiet {{ python_dirs }} \
+    || exit_with error "Ruff check failed. Try 'just ruff-fix' to fix." \
+    && okay "Ruff check passed."
 
 # Ruff static analysis only (less output)
 [private]
 [group('agent')]
 [no-exit-message]
 agent-check-ruff: agent-check-format
-    #!/usr/bin/env bash -uo pipefail
-    uv run --dev ruff check --quiet {{ python_dirs }}
-    status=$?
-    if [ $status -ne 0 ]; then
-        echo -e "❌ Ruff check failed. Try 'just ruff-fix' to fix."
-        exit $status
-    fi
+    #!/usr/bin/env bash -euo pipefail
+    {{ agent-functions + is_dependency() }}
+    uv run --dev ruff check --quiet {{ python_dirs }} \
+    || exit_with error "Ruff check failed. Try 'just ruff-fix' to fix."
 
 # Ruff auto-fix (unsafe fixes enabled)
 [group('developer')]
@@ -139,95 +170,54 @@ ruff-fix:
 [group('developer')]
 [no-exit-message]
 check-types:
-    #!/usr/bin/env bash -uo pipefail
-    just _check-types ; status=$?
-    if [ $status -ne 0 ];  then
-        echo -e "{{ style("error") }}❌ Type check failed. Manual fix required.{{ NORMAL }}"
-        exit $status
-    fi
-    echo -e "\033[1;92m✅ Type check passed.{{ NORMAL }}"
-
-# Internal: helper for check-types
-[private]
-[group('developer')]
-[no-exit-message]
-_check-types:
-    #!/usr/bin/env bash -uo pipefail
-    show () { echo "{{ style("command") }}$@{{ NORMAL }}"; "$@"; return $?; }
-    show uv run --dev ty check || exit $?
-    show uv run --dev mypy; status=$?
-    if [ $status -ne 0 ]; then
-        echo -e "{{ STYLE_WARNING }}⚠️  mypy found issues that ty did not{{ NORMAL }}";
-        exit $status;
-    fi
+    #!/usr/bin/env bash -euo pipefail
+    {{ user-functions + is_dependency() }}
+    show uv run --dev ty check && (
+        show uv run --dev mypy \
+        || exit_with warning "mypy found issues that ty did not."
+    ) \
+    && okay "Type checks passed." \
+    || exit_with error "Type check failed. Manual fix required."
 
 # Type checking with ty and mypy (less output)
 [private]
 [group('agent')]
 [no-exit-message]
 agent-check-types:
-    #!/usr/bin/env bash -uo pipefail
-    just _agent-check-types; status=$?
-    if [ $status -ne 0 ]; then
-        echo -e "❌ Type check failed. Manual fix required."
-        exit $status
-    fi
-
-# Internal: helper for agent-check-types
-[private]
-[group('agent')]
-[no-exit-message]
-_agent-check-types:
-    #!/usr/bin/env bash -uo pipefail
-    uv run --dev ty check --output-format=concise 2>/dev/null || exit $?
-    uv run --dev mypy; status=$?
-    if [ $status -ne 0 ]; then
-        echo "⚠️  mypy found issues that ty did not";
-        exit $status;
-    fi
+    #!/usr/bin/env bash -euo pipefail
+    {{ agent-functions + is_dependency() }}
+    # ty prints annoying output on success, it can be disabled with -q, but
+    # that completely disables error reporting.
+    quietly () { out=$("$@" 2>&1) || exit_with echo "$out"; }
+    quietly uv run --dev ty check --output-format=concise \
+    && uv run --dev mypy && okay
 
 # Check code formatting
 [group('developer')]
 [no-exit-message]
 check-format:
-    #!/usr/bin/env bash -uo pipefail
-    just _check-format; status=$?
-    if [ $status -ne 0 ] ; then
-        echo -e "{{ style("error") }}❌ Format check failed. Try 'just format' to fix.{{ NORMAL }}"
-        exit $status
-    fi
-
-# Internal: helper for check-format
-[private]
-[group('developer')]
-[no-exit-message]
-_check-format:
-    uv run --dev ruff format --quiet --check {{ python_dirs }}
-    uv run --dev docformatter --check {{ python_dirs }}
+    #!/usr/bin/env bash -euo pipefail
+    {{ user-functions + is_dependency() }}
+    source <(just _user-functions {{ is_dependency() }})
+    show uv run --dev ruff format --check {{ python_dirs }} \
+    && show uv run --dev docformatter --check {{ python_dirs }} \
+    && okay "Format checks passed." \
+    || exit_with error "Format check failed. Try 'just format' to fix."
 
 # Check code formatting (less output)
 [private]
 [group('agent')]
 [no-exit-message]
 agent-check-format:
-    #!/usr/bin/env bash -uo pipefail
-    just _agent-check-format; status=$?
-    if [ $status -ne 0 ] ; then
-        echo "❌ Format check failed. Try 'just format' to fix."
-        exit $status
-    fi
-
-# Internal: helper for agent-check-format
-[private]
-[group('agent')]
-[no-exit-message]
-_agent-check-format:
-    @uv run --dev ruff format --quiet --check {{ python_dirs }}
-    @uv run --dev docformatter --check {{ python_dirs }}
+    #!/usr/bin/env bash -euo pipefail
+    {{ agent-functions + is_dependency() }}
+    uv run --dev ruff format --quiet --check {{ python_dirs }} \
+    && uv run --dev docformatter --check {{ python_dirs }} \
+    || exit_with error "Format check failed. Try 'just format' to fix."
 
 # Reformat code, fail if formatting errors remain
 [group('developer')]
 [no-exit-message]
 format:
-    uv run --dev ruff format --quiet {{ python_dirs }}
+    uv run --dev ruff format {{ python_dirs }}
     uv run --dev docformatter --in-place {{ python_dirs }}
