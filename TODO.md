@@ -1,7 +1,5 @@
 # TODO
 
-- Generate second summary, preprocess Joel's snippets by converting to NFD
-  - `nfd = unicodedata.normalize('NFD', emoji)`
 - Evaluate situation and decide if further analysis is needed.
 - Remove needless search words that have another search word for the same emoji
   as prefix

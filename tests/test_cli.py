@@ -4,6 +4,7 @@ import json
 import os
 import plistlib
 import subprocess
+import unicodedata
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
@@ -122,4 +123,48 @@ def test_compare_subcommand_outputs_yaml(tmp_path: Path):
         "removed": {"👍 Thumbs up": ["thumbsup", "+1"]},
         "added": {"🎉 Party popper": ["tada"]},
     }
+    assert output == expected
+
+
+def test_compare_with_unify_normalizes_to_nfd(tmp_path: Path):
+    """CLI compare --unify normalizes emoji to NFD before comparing."""
+    from emojipack.pack import SnippetPack
+    from emojipack.snippets import AlfredSnippet
+
+    emoji_unqualified = "\U0001F6CF"
+    emoji_qualified = "\U0001F6CF\uFE0F"
+    theirs_pack = SnippetPack(
+        prefix=":",
+        suffix=":",
+        snippets=[
+            AlfredSnippet(
+                keyword="bed",
+                name="🛏 Bed",
+                snippet=emoji_unqualified,
+                uid="bed-1F6CF",
+            )
+        ],
+    )
+    mine_pack = SnippetPack(
+        prefix=":",
+        suffix=":",
+        snippets=[
+            AlfredSnippet(
+                keyword="bed",
+                name="🛏️ Bed",
+                snippet=emoji_qualified,
+                uid="bed-1F6CF-FE0F",
+            )
+        ],
+    )
+    theirs_path = tmp_path / "theirs.alfredsnippets"
+    mine_path = tmp_path / "mine.alfredsnippets"
+    theirs_pack.write(theirs_path)
+    mine_pack.write(mine_path)
+    result = runner.invoke(
+        app, ["compare", str(theirs_path), str(mine_path), "--unify"]
+    )
+    assert result.exit_code == 0
+    output = yaml.safe_load(result.stdout)
+    expected = {"removed": {}, "added": {}}
     assert output == expected
