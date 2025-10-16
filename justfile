@@ -10,7 +10,7 @@ help:
 # Generate Emoji Pack
 [group('general')]
 generate *ARGS:
-    uv run emojipack-generator {{ ARGS }}
+    uv run emojipack generate {{ ARGS }}
 
 # Generate Emoji Pack and open with Alfred
 [group('general')]

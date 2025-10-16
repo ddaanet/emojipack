@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-emojipack-generator = "emojipack.cli:app"
+emojipack = "emojipack.cli:app"
 
 [dependency-groups]
 dev = [

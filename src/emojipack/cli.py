@@ -15,7 +15,7 @@ app = typer.Typer()
 
 
 @app.command()
-def main(macos: bool = False) -> None:
+def generate(macos: bool = False) -> None:
     """Generate Emoji Snippet Pack for Alfred."""
     emoji_data = fetch_gemoji_data()
     snippets = [
@@ -33,3 +33,9 @@ def main(macos: bool = False) -> None:
         output_path = Path("Emoji Pack.alfredsnippets")
         pack.write(output_path)
     typer.echo(f"Generated {output_path} with {len(snippets)} snippets")
+
+
+@app.command()
+def compare(theirs: Path, mine: Path) -> None:
+    """Compare two emoji snippet packs."""
+    raise NotImplementedError
