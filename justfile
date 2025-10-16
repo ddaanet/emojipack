@@ -94,7 +94,7 @@ agent:
     {{ agent-functions + is_dependency() }}
     quietly () {
         echo -n "$1... "; shift
-        local output=$("$@" &>1) \
+        local output=$("$@" >&1) \
         && echo OK || { local s=$?; echo FAIL; echo -n "$output"; return $s; }
     }
     quietly "Test suite" just agent-test \
