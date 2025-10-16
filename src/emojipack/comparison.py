@@ -17,6 +17,9 @@ class EmojiComparison:
 def compare_packs(theirs: SnippetPack, mine: SnippetPack) -> EmojiComparison:
     """Compare two snippet packs, grouping snippets by emoji content.
 
+    Snippets with names starting with '#' are ignored (used as comments
+    in Joel's pack).
+
     Args:
         theirs: The reference pack (e.g., Joel's pack)
         mine: The pack to compare against the reference
@@ -26,9 +29,13 @@ def compare_packs(theirs: SnippetPack, mine: SnippetPack) -> EmojiComparison:
     """
     theirs_by_emoji: dict[str, list[AlfredSnippet]] = {}
     for snippet in theirs.snippets:
+        if snippet.name.startswith("#"):
+            continue
         theirs_by_emoji.setdefault(snippet.snippet, []).append(snippet)
     mine_by_emoji: dict[str, list[AlfredSnippet]] = {}
     for snippet in mine.snippets:
+        if snippet.name.startswith("#"):
+            continue
         mine_by_emoji.setdefault(snippet.snippet, []).append(snippet)
     removed = {
         emoji: snippets
