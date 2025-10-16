@@ -60,9 +60,13 @@ class SnippetPack:
     def read(cls, input_path: Path) -> "SnippetPack":
         """Read .alfredsnippets zip file and return SnippetPack."""
         with zipfile.ZipFile(input_path) as zf:
-            plist_data = plistlib.loads(zf.read("info.plist"))
-            prefix = plist_data.get("snippetkeywordprefix", "")
-            suffix = plist_data.get("snippetkeywordsuffix", "")
+            if "info.plist" in zf.namelist():
+                plist_data = plistlib.loads(zf.read("info.plist"))
+                prefix = plist_data.get("snippetkeywordprefix", "")
+                suffix = plist_data.get("snippetkeywordsuffix", "")
+            else:
+                prefix = ""
+                suffix = ""
             snippets = []
             for name in zf.namelist():
                 if name in ("info.plist", "icon.png"):
