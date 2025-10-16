@@ -8,6 +8,7 @@ import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
+import yaml
 from typer.testing import CliRunner
 
 from emojipack.cli import app
@@ -71,3 +72,54 @@ def test_generates_macos_plist_with_flag(tmp_path: Path):
             {"phrase": "👍", "shortcut": ":+1:"},
             {"phrase": "👍", "shortcut": ":thumbsup:"},
         ]
+
+
+def test_compare_subcommand_outputs_yaml(tmp_path: Path):
+    """CLI compare subcommand outputs YAML with added/removed emojis."""
+    from emojipack.pack import SnippetPack
+    from emojipack.snippets import AlfredSnippet
+
+    theirs_pack = SnippetPack(
+        prefix=":",
+        suffix=":",
+        snippets=[
+            AlfredSnippet(
+                keyword="thumbsup",
+                name="👍 Thumbs up",
+                snippet="👍",
+                uid="thumbsup-1F44D",
+            ),
+            AlfredSnippet(
+                keyword="+1",
+                name="👍 Thumbs up",
+                snippet="👍",
+                uid="+1-1F44D",
+            ),
+        ],
+    )
+    mine_pack = SnippetPack(
+        prefix=":",
+        suffix=":",
+        snippets=[
+            AlfredSnippet(
+                keyword="tada",
+                name="🎉 Party popper",
+                snippet="🎉",
+                uid="tada-1F389",
+            )
+        ],
+    )
+    theirs_path = tmp_path / "theirs.alfredsnippets"
+    mine_path = tmp_path / "mine.alfredsnippets"
+    theirs_pack.write(theirs_path)
+    mine_pack.write(mine_path)
+    result = runner.invoke(
+        app, ["compare", str(theirs_path), str(mine_path)]
+    )
+    assert result.exit_code == 0
+    output = yaml.safe_load(result.stdout)
+    expected = {
+        "removed": {"👍 Thumbs up": ["thumbsup", "+1"]},
+        "added": {"🎉 Party popper": ["tada"]},
+    }
+    assert output == expected

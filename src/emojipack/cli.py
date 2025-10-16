@@ -6,7 +6,9 @@ import importlib.resources
 from pathlib import Path
 
 import typer
+import yaml
 
+from emojipack.comparison import compare_packs
 from emojipack.download import fetch_gemoji_data
 from emojipack.pack import SnippetPack
 from emojipack.snippets import AlfredSnippet
@@ -35,7 +37,24 @@ def generate(macos: bool = False) -> None:
     typer.echo(f"Generated {output_path} with {len(snippets)} snippets")
 
 
+def _format_emoji_dict(
+    emoji_dict: dict[str, list[AlfredSnippet]]
+) -> dict[str, list[str]]:
+    """Convert emoji->snippets dict to name->keywords dict."""
+    return {
+        snippets[0].name: [s.keyword for s in snippets]
+        for snippets in emoji_dict.values()
+    }
+
+
 @app.command()
 def compare(theirs: Path, mine: Path) -> None:
     """Compare two emoji snippet packs."""
-    raise NotImplementedError
+    theirs_pack = SnippetPack.read(theirs)
+    mine_pack = SnippetPack.read(mine)
+    result = compare_packs(theirs_pack, mine_pack)
+    output = {
+        "removed": _format_emoji_dict(result.removed),
+        "added": _format_emoji_dict(result.added),
+    }
+    typer.echo(yaml.dump(output, allow_unicode=True, sort_keys=False))

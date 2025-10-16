@@ -1,10 +1,5 @@
 # TODO
 
-- Compute found/added/removed emoji (by content) between Joel and me.
-- Generate summary of changes: markdown section added emojis, removed emojis.
-  - Sort emojis by unified code points
-  - For each emoji, display all snippets
-  - For each snippet, display content, keyword, name
 - Generate second summary, preprocess Joel's snippets by converting to NFD
   - `nfd = unicodedata.normalize('NFD', emoji)`
 - Evaluate situation and decide if further analysis is needed.
