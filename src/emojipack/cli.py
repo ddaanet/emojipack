@@ -39,7 +39,7 @@ def generate(macos: bool = False) -> None:
 
 
 def _format_emoji_dict(
-    emoji_dict: dict[str, list[AlfredSnippet]]
+    emoji_dict: dict[str, list[AlfredSnippet]],
 ) -> dict[str, list[str]]:
     """Convert emoji->snippets dict to name->keywords dict."""
     return {

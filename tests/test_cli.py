@@ -4,7 +4,6 @@ import json
 import os
 import plistlib
 import subprocess
-import unicodedata
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
@@ -13,6 +12,8 @@ import yaml
 from typer.testing import CliRunner
 
 from emojipack.cli import app
+from emojipack.pack import SnippetPack
+from emojipack.snippets import AlfredSnippet
 
 from .test_download import SAMPLE_GEMOJI_JSON
 
@@ -20,10 +21,10 @@ runner = CliRunner()
 
 
 def test_help_command_exits_successfully():
-    """Running emojipack-generator --help exits successfully."""
+    """Running emojipack --help exits successfully."""
     venv = os.environ.get("VIRTUAL_ENV")
     assert venv, "VIRTUAL_ENV not set"
-    script_path = Path(venv) / "bin" / "emojipack-generator"
+    script_path = Path(venv) / "bin" / "emojipack"
     result = subprocess.run(
         [str(script_path), "--help"],
         check=True,
@@ -40,7 +41,7 @@ def test_generates_emoji_pack_alfredsnippets(tmp_path: Path):
         runner.isolated_filesystem(temp_dir=tmp_path),
     ):
         mock_fetch.return_value = json.dumps(SAMPLE_GEMOJI_JSON)
-        result = runner.invoke(app)
+        result = runner.invoke(app, ["generate"])
         assert result.exit_code == 0
 
         output_file = Path("Emoji Pack.alfredsnippets")
@@ -62,7 +63,7 @@ def test_generates_macos_plist_with_flag(tmp_path: Path):
         runner.isolated_filesystem(temp_dir=tmp_path),
     ):
         mock_fetch.return_value = json.dumps(SAMPLE_GEMOJI_JSON)
-        result = runner.invoke(app, ["--macos"])
+        result = runner.invoke(app, ["generate", "--macos"])
         assert result.exit_code == 0
         output_file = Path("Snippet Pack.plist")
         assert output_file.exists()
@@ -77,9 +78,6 @@ def test_generates_macos_plist_with_flag(tmp_path: Path):
 
 def test_compare_subcommand_outputs_yaml(tmp_path: Path):
     """CLI compare subcommand outputs YAML with added/removed emojis."""
-    from emojipack.pack import SnippetPack
-    from emojipack.snippets import AlfredSnippet
-
     theirs_pack = SnippetPack(
         prefix=":",
         suffix=":",
@@ -114,9 +112,7 @@ def test_compare_subcommand_outputs_yaml(tmp_path: Path):
     mine_path = tmp_path / "mine.alfredsnippets"
     theirs_pack.write(theirs_path)
     mine_pack.write(mine_path)
-    result = runner.invoke(
-        app, ["compare", str(theirs_path), str(mine_path)]
-    )
+    result = runner.invoke(app, ["compare", str(theirs_path), str(mine_path)])
     assert result.exit_code == 0
     output = yaml.safe_load(result.stdout)
     expected = {
@@ -128,11 +124,8 @@ def test_compare_subcommand_outputs_yaml(tmp_path: Path):
 
 def test_compare_with_unify_normalizes_to_nfd(tmp_path: Path):
     """CLI compare --unify normalizes emoji to NFD before comparing."""
-    from emojipack.pack import SnippetPack
-    from emojipack.snippets import AlfredSnippet
-
-    emoji_unqualified = "\U0001F6CF"
-    emoji_qualified = "\U0001F6CF\uFE0F"
+    emoji_unqualified = "\U0001f6cf"
+    emoji_qualified = "\U0001f6cf\ufe0f"
     theirs_pack = SnippetPack(
         prefix=":",
         suffix=":",
@@ -165,6 +158,4 @@ def test_compare_with_unify_normalizes_to_nfd(tmp_path: Path):
         app, ["compare", str(theirs_path), str(mine_path), "--unify"]
     )
     assert result.exit_code == 0
-    output = yaml.safe_load(result.stdout)
-    expected = {"removed": {}, "added": {}}
-    assert output == expected
+    assert yaml.safe_load(result.stdout) == {"removed": {}, "added": {}}
