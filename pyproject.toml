@@ -55,6 +55,7 @@ ignore = [
     "PLR2004",  # Magic value used in comparison
 
     # Rules that should be disabled when using ruff as a formatter.
+    # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "W191",     # tab-indentation
     "E111",     # indentation-with-invalid-multiple
     "E114",     # indentation-with-invalid-multiple-comment
@@ -79,6 +80,9 @@ ignore = [
     # "FBT",    # Ignore boolean traps in test parameters
     "SLF001",   # Private member accessed
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
 
 [tool.mypy]
 files = ["src", "tests"]
