@@ -56,6 +56,9 @@ To add a feature or fix a bug:
 Work in small iterations. Add one failing test, implement, check, commit,
 repeat
 
+To remove a feature, or unused code: just remove code and run the test suite.
+There is no Red step.
+
 #### Testing
 
 - To run specific tests, use `just agent-test`, it's a wrapper for pytest.
