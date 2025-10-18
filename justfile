@@ -20,61 +20,59 @@ install: generate
 # Hack to perform string interpolation on variables. Render the content of
 # the variables in a just subprocess, passing in the is_dependency() value.
 # In the subprocess, is_dependency() is always false.
-# Usage, user mode: {{ user-functions + is_dependency() }}
-# Usage, agent mode: {{ agent-functions + is_dependency() }}
-user-functions := 'load () { source <(just _user-functions $1); }; load '
-agent-functions := 'load () { source <(just _agent-functions $1); }; load '
+# Usage: {{ functions + is_dependency() }}
+functions := 'load-funcs () { source <(just _functions $1); }; load-funcs '
 
 # Common functions for all recipes
 [group('internal')]
 [private]
-_common-functions:
+_functions isdep:
     #!/bin/cat
     # exit_with: run command and exit with original status
     exit_with () { local s=$?; "$@"; exit $s; }
-
-# Common functions for developer recipes, with colored output
-[group('internal')]
-[private]
-_user-functions isdep: _common-functions
-    #!/bin/cat
-    # echo-style STYLE ARGS...
-    # Print ARGS in with STYLE.
+    # style-* : set text style.
+    style-command () { echo -n "{{ style('command') }}"; }
+    style-warning () { echo -n "{{ style('warning')}}"; }
+    style-error () { echo -n "{{ style('error') }}"; }
+    style-okay () { echo -en '\033[1;92m'; }
+    style-reset () { echo -ne "{{ NORMAL }}"; }
+    # echo-style STYLE ARGS... : Print ARGS in with STYLE.
     echo-style () {
         # Uncomment following line to ignore style if stdout is not a tty.
         # [ ! -t 1 ] && { shift; echo "$*"; return; }
-        case "$1" in
-            command) echo -n "{{ style('command') }}" ;;
-            error) echo -n "{{ style('error') }}" ;;
-            okay) echo -en '\033[1;92m' ;;
-            warning) echo -en '\033[1;93m' ;;
-        esac
-        shift; echo -e "$*{{ NORMAL }}"
+        "style-$1"; shift
+        echo -n "$*"; style-reset; echo
     }
-    show () { echo-style command "$*"; "$@"; }
-    okay () { echo-style okay "✅ $*"; }
+    do-command () { echo-style command "$*"; "$@"; }
+    okay () { echo-style okay "✅ ${*:-OK}"; }
     warning () { echo-style warning "⚠️  $*"; }
     error () { echo-style error "❌ $*"; }
     # No success output when running as dependency.
     if {{ isdep }}; then okay () { :; }; fi
 
-# Common functions for agent recipes, monochrome output
+# Display available styles
 [group('internal')]
 [private]
-_agent-functions isdep: _common-functions
-    #!/bin/cat
-    okay () { echo "✅ ${*:-OK}"; }
-    # No output when running as dependency
-    if {{ isdep }}; then okay () { :; }; fi
-    warning () { echo "⚠️  $*"; }
-    error () { echo "❌ $*"; }
+colors:
+    #!/usr/bin/env bash -euo pipefail
+    {{ functions + is_dependency() }}
+    echo "Inline styles:"
+    for x in command warning error okay reset
+    do style-$x; echo -n "$x "
+    done
+    echo
+    echo "Line styles:"
+    do-command command
+    for x in warning error okay
+    do $x $x
+    done
 
 # Development workflow: format, test, check
 [group('developer')]
 [no-exit-message]
 dev: format test check-compile check-ruff check-types
     #!/usr/bin/env bash -euo pipefail
-    {{ user-functions + is_dependency() }}
+    {{ functions + is_dependency() }}
     okay "Development checks ok."
 
 python_dirs := "src tests"
@@ -91,17 +89,25 @@ clean:
 agent:
     #!/usr/bin/env bash -euo pipefail
     # Do not reformat code in agent mode, to prevent desync with agent state.
-    {{ agent-functions + is_dependency() }}
+    {{ functions + is_dependency() }}
     quietly () {
-        echo -n "$1... "; shift
-        local output=$("$@" >&1) \
-        && echo OK || { local s=$?; echo FAIL; echo -n "$output"; return $s; }
+        style-command; echo -n "$1... "; shift
+        output=$("$@" >&1) \
+        && { style-okay; echo OK; style-reset; } \
+    || {
+            local s=$?
+            style-error; echo FAIL
+            style-reset; echo "$output"
+            return $s
+        }
     }
-    quietly "Test suite" just agent-test \
-    && quietly "Static analysis" just agent-check \
-    && quietly "Code style" just agent-check-format \
-    && okay \
-    || exit_with error FAIL
+    set +e
+    quietly "Test suite" just agent-test; test=$?
+    quietly "Static analysis" just agent-check; check=$?
+    quietly "Code style" just agent-check-format; format=$?
+    set -e
+    (( test == 0 && check == 0 && format == 0 )) \
+    && okay || { s=$?; style-error; echo "❌ FAIL"; style-reset; exit $s; }
 
 # Run test suite
 [group('developer')]
@@ -146,8 +152,8 @@ agent-check-compile:
 check-ruff: check-format
     #!/usr/bin/env bash -euo pipefail
     # Do check-format first to produce the appropriate error message.
-    {{ user-functions + is_dependency() }}
-    show uv run --dev ruff check --quiet {{ python_dirs }} \
+    {{ functions + is_dependency() }}
+    do-command uv run --dev ruff check --quiet {{ python_dirs }} \
     || exit_with error "Ruff check failed. Try 'just ruff-fix' to fix." \
     && okay "Ruff check passed."
 
@@ -155,9 +161,9 @@ check-ruff: check-format
 [private]
 [group('agent')]
 [no-exit-message]
-agent-check-ruff: agent-check-format
+agent-check-ruff:
     #!/usr/bin/env bash -euo pipefail
-    {{ agent-functions + is_dependency() }}
+    {{ functions + is_dependency() }}
     uv run --dev ruff check --quiet {{ python_dirs }} \
     || exit_with error "Ruff check failed. Try 'just ruff-fix' to fix."
 
@@ -171,9 +177,9 @@ ruff-fix:
 [no-exit-message]
 check-types:
     #!/usr/bin/env bash -euo pipefail
-    {{ user-functions + is_dependency() }}
-    show uv run --dev ty check && (
-        show uv run --dev mypy \
+    {{ functions + is_dependency() }}
+    do-command uv run --dev ty check && (
+        do-command uv run --dev mypy \
         || exit_with warning "mypy found issues that ty did not."
     ) \
     && okay "Type checks passed." \
@@ -185,22 +191,23 @@ check-types:
 [no-exit-message]
 agent-check-types:
     #!/usr/bin/env bash -euo pipefail
-    {{ agent-functions + is_dependency() }}
+    {{ functions + is_dependency() }}
     # ty prints annoying output on success, it can be disabled with -q, but
     # that completely disables error reporting.
     quietly () { out=$("$@" 2>&1) || exit_with echo "$out"; }
-    quietly uv run --dev ty check --output-format=concise \
-    && uv run --dev mypy && okay
+    quietly uv run --dev ty check --output-format=concise && (
+        uv run --dev mypy \
+        || exit_with warning "mypy found issues that ty did not."
+    ) && okay
 
 # Check code formatting
 [group('developer')]
 [no-exit-message]
 check-format:
     #!/usr/bin/env bash -euo pipefail
-    {{ user-functions + is_dependency() }}
-    source <(just _user-functions {{ is_dependency() }})
-    show uv run --dev ruff format --check {{ python_dirs }} \
-    && show uv run --dev docformatter --check {{ python_dirs }} \
+    {{ functions + is_dependency() }}
+    do-command uv run --dev ruff format --check {{ python_dirs }} \
+    && do-command uv run --dev docformatter --check {{ python_dirs }} \
     && okay "Format checks passed." \
     || exit_with error "Format check failed. Try 'just format' to fix."
 
@@ -210,7 +217,7 @@ check-format:
 [no-exit-message]
 agent-check-format:
     #!/usr/bin/env bash -euo pipefail
-    {{ agent-functions + is_dependency() }}
+    {{ functions + is_dependency() }}
     uv run --dev ruff format --quiet --check {{ python_dirs }} \
     && uv run --dev docformatter --check {{ python_dirs }} \
     || exit_with error "Format check failed. Try 'just format' to fix."
