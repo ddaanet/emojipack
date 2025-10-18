@@ -3,7 +3,6 @@
 # Boolean arguments are required for typer CLI flags
 
 import importlib.resources
-import unicodedata
 from pathlib import Path
 
 import typer
@@ -48,36 +47,11 @@ def _format_emoji_dict(
     }
 
 
-def _normalize_pack_to_nfd(pack: SnippetPack) -> SnippetPack:
-    """Normalize all emoji in pack to NFD and strip variation selectors."""
-    normalized_snippets = [
-        AlfredSnippet(
-            keyword=s.keyword,
-            name=s.name,
-            snippet=_normalize_emoji(s.snippet),
-            uid=s.uid,
-        )
-        for s in pack.snippets
-    ]
-    return SnippetPack(
-        prefix=pack.prefix, suffix=pack.suffix, snippets=normalized_snippets
-    )
-
-
-def _normalize_emoji(emoji: str) -> str:
-    """Normalize emoji to NFD and strip variation selectors."""
-    nfd = unicodedata.normalize("NFD", emoji)
-    return "".join(c for c in nfd if unicodedata.category(c) != "Mn")
-
-
 @app.command()
-def compare(theirs: Path, mine: Path, unify: bool = False) -> None:
+def compare(theirs: Path, mine: Path) -> None:
     """Compare two emoji snippet packs."""
     theirs_pack = SnippetPack.read(theirs)
     mine_pack = SnippetPack.read(mine)
-    if unify:
-        theirs_pack = _normalize_pack_to_nfd(theirs_pack)
-        mine_pack = _normalize_pack_to_nfd(mine_pack)
     result = compare_packs(theirs_pack, mine_pack)
     output = {
         "removed": _format_emoji_dict(result.removed),

@@ -1,6 +1,5 @@
 # TODO
 
-- Remove --unify
 - comparison: add categories
   - found (exact content match)
   - added emoji presentation marker
