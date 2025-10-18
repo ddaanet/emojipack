@@ -1,90 +1,79 @@
 # AI Agent and Development Rules
 
-- #todo Do the first item of TODO.md. Remove completed tasks, add new tasks
+- Do the first item of TODO.md. Remove completed tasks, add new tasks
   when identified
-- #loop The loop is either the #feature loop or the #refactor loop
-- #feature #tdd The feature loop is: Plan -> Test (Red) -> Code (Green) ->
-  Commit -> Refactor (see below)
-- #refactor The Refactor Loop is: Plan -> Code -> Green -> Commit
-- #just Run `just agent` before every commit instead of `just dev`
+- Practice TDD (Test Driven Development), see below
+- `just agent` before every commit, do not use `just dev`
 
 ## Global Rules
 
 ### Version Control and Project Management
 
-- #init Initialize Git repository at project start, commit initial state
-- #commit Commit with short informative messages
-- #adblock Do not advertise yourself in commit messages
-- #gitmoji Use gitmojis (https://gitmoji.dev) as unicode
 - Update TODO.md before commit
-
-### Context and Documentation
-
-- Read Project section below for context, update before commits and when
-  incorrect
-- Create `README.md` with usage instructions upon project completion
+- adblock: DO NOT advertise yourself in commit messages
+- Commit with short informative messages
+- Use gitmojis (https://gitmoji.dev) as unicode
 
 ### Design and Development
 
 #### Architecture
 
-- #datafirst Design data structures first: names, attributes, types,
+- datafirst: Design data structures first: names, attributes, types,
   docstrings. Code design flows from data structure design
-- #deslop Deslop (condense/simplify) generated code: remove unnecessary
+- Deslop (condense/simplify) generated code: remove unnecessary
   comments, blank lines, redundancy
-- #short Make code concise while retaining functionality and readability
+- Make code concise while retaining functionality and readability
 
 #### Code Quality
 
 - Validate input once when entering system, handle errors explicitly
 - Include docstrings for functions/modules
-- Provide test suites with factorized tests
-- #col79 Limit lines to 79 columns
-- #nocreep Write only necessary code for required use cases
-- #nospec Do not write speculative and boilerplate code
-- Clean trailing whitespace, avoid indenting empty lines
-- End text files with newline
+- Limit lines to 79 columns
+- Write only necessary code for required use cases
+- Do not write speculative and boilerplate code
 
-#### TDD: Red-Green-Refactor
+#### Test Driven Develompent (TDD)
 
-To add a feature or fix a bug:
-
-- Red: add the next test, ensure it fails
-- Green: implement the simplest correct behavior, run tests to confirm, commit
-- Refactor: clean tests and code, non trivial changes in separate commits
-
-Work in small iterations. Add one failing test, implement, check, commit,
-repeat
-
-To remove a feature, or unused code: just remove code and run the test suite.
-There is no Red step.
+- Red-green: Plan -> Test (Red) -> Code (Green) -> Commit -> Refactor
+  - For: new features, fixes
+  - Red: Write tests, ensure thepy fail
+  - Green: Implement the simplest correct behavior, run tests to confirm
+  - Refactor: Factorize and reorganize tests and code, non trivial changes in
+    separate commits
+- Refactor: Plan -> Code -> Green -> Commit
+  - For: reorganizations with no behavior change, code removal
 
 #### Testing
 
 - To run specific tests, use `just agent-test`, it's a wrapper for pytest.
-- When comparing complex structures (like lists or dicts), do not assert the
-  value of individual members, instead assert the value of the whole object. If
-  some items must be ignored, remove them before assert.
+- Checking complex structures:
+  - When comparing complex structures (lists, dicts, dataclasses) in tests
+  - Do not assert comparisons to the value of individual members
+  - Instead assert a single comparison for the whole structure
+  - If some items must be ignored in the comparison, build a dict for the
+    comparison, omitting those items.
 
 ### Environment and Tooling
 
 #### Python
 
-- Use `uv run` for all scripts
-- Use `uv add` to install new dependencies instead of directly modifying
-  `pyproject.toml`
-- Use `pyproject.toml` with setuptools as the build backend and
-  dependency-groups for dev dependencies
+- Use `uv run` for all commands that need the python enviroment
+- Use `uv add` to install new production dependencies
+- Use `uv add --dev` to install new development dependencies
 - Require Python >=3.12 in `pyproject.toml`
 - Write fully typed code with modern hints (`list[T]` not `List[T]`)
 - Keep try blocks minimal to catch only intended errors
 - Don't start unittest docstrings with "Test"
-- Always use justfile for running tests, even with custom parameters
 
 #### Shell/Scripting
 
-- Use `bash` or `/usr/bin/env bash` (to get a homebrew bash on macOS)
-- Include `set -euo pipefail` in bash scripts, follow shell idioms
+- `#!/usr/bin/env bash -euo pipefail`
+  - Use `bash` from homebrew
+  - Enable bash strict mode
+    - exit on error
+    - undefined variables are error
+    - pipe fail if any command fails
+  - Think about shell idioms involving the exit status
 - Package commands (test, run, clean) using `just`
 - Create parameterized commands in justfile instead of running raw commands
 
@@ -98,12 +87,7 @@ There is no Red step.
 - Be concise and conversational but professional
 - Avoid business-speak, buzzwords, unfounded self-affirmations
 - State facts directly even if they don't conform to requests
-
-#### Typography
-
 - Use Markdown formatting
-- French typographic rules: non-breaking spaces before ";:?!", French quotes,
-  guillemet-apostrophe
 
 ## Project: emojipack
 
