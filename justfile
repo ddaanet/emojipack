@@ -20,16 +20,17 @@ install: generate
 # Hack to perform string interpolation on variables. Render the content of
 # the variables in a just subprocess, passing in the is_dependency() value.
 # In the subprocess, is_dependency() is always false.
-# Usage: {{ functions + is_dependency() }}
-functions := 'load-funcs () { source <(just _functions $1); }; load-funcs '
+# Usage: {{ functions }} {{ is_dependency() }} {{ inner }}
+inner := "false"
+functions := 'load-funcs () { source <(just _functions $2 $1); }; load-funcs '
 
 # Common functions for all recipes
 [group('internal')]
 [private]
-_functions isdep:
+_functions isdep inner:
     #!/bin/cat
-    # exit_with: run command and exit with original status
-    exit_with () { local s=$?; "$@"; exit $s; }
+    # exit-with: run command and exit with original status
+    exit-with () { local s=$?; "$@"; exit $s; }
     # style-* : set text style.
     style-command () { echo -n "{{ style('command') }}"; }
     style-warning () { echo -n "{{ style('warning')}}"; }
@@ -46,20 +47,27 @@ _functions isdep:
     do-command () { echo-style command "$*"; "$@"; }
     okay () { echo-style okay "✅ ${*:-OK}"; }
     warning () { echo-style warning "⚠️  $*"; }
-    error () { echo-style error "❌ $*"; }
-    # No success output when running as dependency.
-    if {{ isdep }}; then okay () { :; }; fi
+    error () { echo-style error "❌ ${*:-FAIL}"; }
+    # No success or error output when running as dependency.
+    if {{ isdep }} || {{ inner }}
+    then okay () { :; }; error () { :; }
+    fi
+    # add-status command ...: run command and add $? to status variable
+    # Can run multiple seqential commands, delaying failure.
+    add-status () { set +e; "$@"; (( status = ${status:-0} + $? )); set -e; }
+    # do-status: return the accumulated status
+    do-status () { return ${status:-0}; }
 
 # Display available styles
 [group('internal')]
 [private]
 colors:
     #!/usr/bin/env bash -euo pipefail
-    {{ functions + is_dependency() }}
+    {{ functions }} {{ is_dependency() }} {{ inner }}
     echo "Inline styles:"
     for x in command warning error okay reset
     do style-$x; echo -n "$x "
-    done
+    dones
     echo
     echo "Line styles:"
     do-command command
@@ -67,13 +75,16 @@ colors:
     do $x $x
     done
 
-# Development workflow: format, test, check
+# Development workflow: test, check
 [group('developer')]
 [no-exit-message]
-dev: format test check-compile check-ruff check-types
+dev:
     #!/usr/bin/env bash -euo pipefail
-    {{ functions + is_dependency() }}
-    okay "Development checks ok."
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    just inner=true check-compile || exit-with error
+    add-status just inner=true test
+    add-status just inner=true check
+    do-status && okay "Development checks OK" || exit-with error
 
 python_dirs := "src tests"
 
@@ -83,31 +94,28 @@ clean:
     find {{ python_dirs }} -type d -name '__pycache__' | xargs rm -rf
     rm -rf .*_cache .venv build
 
-# Agent workflow: minimal output version of dev, no reformatting
+# Agent workflow: minimal output version of dev
 [group('agent')]
 [no-exit-message]
 agent:
     #!/usr/bin/env bash -euo pipefail
     # Do not reformat code in agent mode, to prevent desync with agent state.
-    {{ functions + is_dependency() }}
+    {{ functions }} {{ is_dependency() }} {{ inner }}
     quietly () {
         style-command; echo -n "$1... "; shift
         output=$("$@" >&1) \
         && { style-okay; echo OK; style-reset; } \
-    || {
+        || {
             local s=$?
             style-error; echo FAIL
-            style-reset; echo "$output"
+            style-reset; echo "${output}"
             return $s
         }
     }
-    set +e
-    quietly "Test suite" just agent-test; test=$?
-    quietly "Static analysis" just agent-check; check=$?
-    quietly "Code style" just agent-check-format; format=$?
-    set -e
-    (( test == 0 && check == 0 && format == 0 )) \
-    && okay || { s=$?; style-error; echo "❌ FAIL"; style-reset; exit $s; }
+    add-status quietly "Test suite" just inner=true agent-test
+    add-status quietly "Static analysis" just inner=true agent-check
+    add-status quietly "Code style" just inner=true agent-check-format
+    do-status && okay || exit-with error
 
 # Run test suite
 [group('developer')]
@@ -124,19 +132,38 @@ agent-test *ARGS:
 # Static code analysis and style checks
 [group('developer')]
 [no-exit-message]
-check: check-compile check-format check-ruff check-types
+check:
+    #!/usr/bin/env bash -euo pipefail
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    # if inner=true, recipe is being run by dev recipe,
+    if ! {{ inner }}
+    then just inner=true check-compile || exit-with error
+    fi
+    add-status just inner=true check-format
+    add-status just inner=true check-ruff
+    add-status just inner=true check-types
+    do-status && okay Static analysis and format checks passed \
+    || exit-with error
 
 [private]
 [group('agent')]
 [no-exit-message]
-agent-check: agent-check-compile agent-check-ruff agent-check-types
+agent-check: agent-check-compile
+    #!/usr/bin/env bash -euo pipefail
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    add-status just inner=true agent-check-ruff
+    add-status just inner=true agent-check-types
+    do-status && okay || exit-with error
 
 # Check that all Python files compile
 [private]
 [group('developer')]
 [no-exit-message]
 check-compile:
-    uv run -m compileall -q {{ python_dirs }}
+    #!/usr/bin/env bash -euo pipefail
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    do-command uv run -m compileall -q {{ python_dirs }} \
+    && okay || exit-with error
 
 # Check that all Python files compile (less output)
 [private]
@@ -149,13 +176,13 @@ agent-check-compile:
 [private]
 [group('developer')]
 [no-exit-message]
-check-ruff: check-format
+check-ruff:
     #!/usr/bin/env bash -euo pipefail
-    # Do check-format first to produce the appropriate error message.
-    {{ functions + is_dependency() }}
+    {{ functions }} {{ is_dependency() }} {{ inner }}
     do-command uv run --dev ruff check --quiet {{ python_dirs }} \
-    || exit_with error "Ruff check failed. Try 'just ruff-fix' to fix." \
-    && okay "Ruff check passed."
+    && okay "Ruff check passed" \
+    || exit-with error "Ruff check failed, try 'just ruff-fix' to fix"
+
 
 # Ruff static analysis only (less output)
 [private]
@@ -163,27 +190,31 @@ check-ruff: check-format
 [no-exit-message]
 agent-check-ruff:
     #!/usr/bin/env bash -euo pipefail
-    {{ functions + is_dependency() }}
+    {{ functions }} {{ is_dependency() }} {{ inner }}
     uv run --dev ruff check --quiet {{ python_dirs }} \
-    || exit_with error "Ruff check failed. Try 'just ruff-fix' to fix."
+    && okay || exit-with error "Ruff check failed, try 'just ruff-fix' to fix"
 
 # Ruff auto-fix (unsafe fixes enabled)
 [group('developer')]
+[no-exit-message]
 ruff-fix:
-    uv run --dev ruff check --fix --unsafe-fixes {{ python_dirs }}
+    #!/usr/bin/env bash -euo pipefail
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    do-command uv run --dev ruff check --fix --unsafe-fixes {{ python_dirs }} \
+    && okay || exit-with error "Manual fix required"
 
 # Type checking with ty and mypy
 [group('developer')]
 [no-exit-message]
 check-types:
     #!/usr/bin/env bash -euo pipefail
-    {{ functions + is_dependency() }}
+    {{ functions }} {{ is_dependency() }} {{ inner }}
     do-command uv run --dev ty check && (
         do-command uv run --dev mypy \
-        || exit_with warning "mypy found issues that ty did not."
+        || exit-with warning "mypy found issues that ty did not"
     ) \
-    && okay "Type checks passed." \
-    || exit_with error "Type check failed. Manual fix required."
+    && okay "Type checks passed" \
+    || exit-with error "Type check failed, manual fix required"
 
 # Type checking with ty and mypy (less output)
 [private]
@@ -191,25 +222,25 @@ check-types:
 [no-exit-message]
 agent-check-types:
     #!/usr/bin/env bash -euo pipefail
-    {{ functions + is_dependency() }}
+    {{ functions }} {{ is_dependency() }} {{ inner }}
     # ty prints annoying output on success, it can be disabled with -q, but
     # that completely disables error reporting.
-    quietly () { out=$("$@" 2>&1) || exit_with echo "$out"; }
+    quietly () { out=$("$@" 2>&1) || exit-with echo "$out"; }
     quietly uv run --dev ty check --output-format=concise && (
         uv run --dev mypy \
-        || exit_with warning "mypy found issues that ty did not."
-    ) && okay
+        || exit-with warning "mypy found issues that ty did not"
+    ) && okay || exit-with error
 
 # Check code formatting
 [group('developer')]
 [no-exit-message]
 check-format:
     #!/usr/bin/env bash -euo pipefail
-    {{ functions + is_dependency() }}
-    do-command uv run --dev ruff format --check {{ python_dirs }} \
-    && do-command uv run --dev docformatter --check {{ python_dirs }} \
-    && okay "Format checks passed." \
-    || exit_with error "Format check failed. Try 'just format' to fix."
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    add-status do-command uv run --dev ruff format --check {{ python_dirs }}
+    add-status do-command uv run --dev docformatter --check {{ python_dirs }}
+    do-status && okay "Format checks passed" \
+    || exit-with error "Format check failed, try 'just format' to fix"
 
 # Check code formatting (less output)
 [private]
@@ -217,14 +248,21 @@ check-format:
 [no-exit-message]
 agent-check-format:
     #!/usr/bin/env bash -euo pipefail
-    {{ functions + is_dependency() }}
-    uv run --dev ruff format --quiet --check {{ python_dirs }} \
-    && uv run --dev docformatter --check {{ python_dirs }} \
-    || exit_with error "Format check failed. Try 'just format' to fix."
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    add-status uv run --dev ruff format --quiet --check {{ python_dirs }}
+    add-status uv run --dev docformatter --check {{ python_dirs }}
+    do-status && okay \
+    || exit-with error "Format check failed, try 'just format' to fix"
 
 # Reformat code, fail if formatting errors remain
 [group('developer')]
 [no-exit-message]
 format:
-    uv run --dev ruff format {{ python_dirs }}
-    uv run --dev docformatter --in-place {{ python_dirs }}
+    #!/usr/bin/env bash -euo pipefail
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    add-status do-command uv run --dev ruff format {{ python_dirs }}
+    add-status do-command \
+        uv run --dev docformatter --in-place {{ python_dirs }}
+    do-status && okay Code format OK || exit-with error Code format failed
+
+
