@@ -100,4 +100,6 @@ def compare(theirs: Path, mine: Path, verbose: bool = False) -> None:
             "added": len(result.added),
         }
 
-    typer.echo(yaml.dump(output, allow_unicode=True, sort_keys=False))
+    typer.echo(
+        yaml.dump(output, allow_unicode=True, sort_keys=False), nl=False
+    )

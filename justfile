@@ -57,7 +57,14 @@ _functions isdep inner:
         "style-$1"; shift
         echo -n "$*"; style-reset; echo
     }
-    do-command () { echo-style command "$*" >&2; "$@"; }
+    do-command () {
+        local cmd=""
+        for arg in "$@"; do
+            cmd+=$(printf "%q " "$arg")
+        done
+        echo-style command "${cmd% }" >&2
+        "$@"
+    }
     okay () { echo-style okay "✅ ${*:-OK}" >&2; }
     warning () { echo-style warning "⚠️  $*" >&2; }
     error () { echo-style error "❌ ${*:-FAIL}" >&2; }
