@@ -1,7 +1,5 @@
 # TODO
 
-- Modify compare_packs to use snippet name instead of content as key in added
-  and removed comparison attributes
 - Generalize AlfredSnippet positional arguments (uid keyword) in existing tests
   to make code more compact
 - Repeat following check until no emoji appears removed:
