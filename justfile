@@ -11,11 +11,24 @@ help:
 [group('general')]
 generate *ARGS:
     uv run emojipack generate {{ ARGS }}
+    mkdir -p data
+    mv "Emoji Pack.alfredsnippets" data
 
 # Generate Emoji Pack and open with Alfred
 [group('general')]
 install: generate
-    open "Emoji Pack.alfredsnippets"
+    open "data/Emoji Pack.alfredsnippets"
+
+# Compare generated pack with Joel's pack
+[group('general')]
+compare: generate
+    #!/usr/bin/env bash -euo pipefail
+    {{ functions }} {{ is_dependency() }} {{ inner }}
+    if [ ! -f data/joel.alfredsnippets ]
+    then do-command curl --location --output data/joel.alfredsnippets \
+        "https://joelcalifa.com/blog/alfred-emoji-snippet-pack/Emoji%20Pack.alfredsnippets"
+    fi
+    do-command uv run emojipack compare data/joel.alfredsnippets "data/Emoji Pack.alfredsnippets"
 
 # Hack to perform string interpolation on variables. Render the content of
 # the variables in a just subprocess, passing in the is_dependency() value.
@@ -44,10 +57,10 @@ _functions isdep inner:
         "style-$1"; shift
         echo -n "$*"; style-reset; echo
     }
-    do-command () { echo-style command "$*"; "$@"; }
-    okay () { echo-style okay "✅ ${*:-OK}"; }
-    warning () { echo-style warning "⚠️  $*"; }
-    error () { echo-style error "❌ ${*:-FAIL}"; }
+    do-command () { echo-style command "$*" >&2; "$@"; }
+    okay () { echo-style okay "✅ ${*:-OK}" >&2; }
+    warning () { echo-style warning "⚠️  $*" >&2; }
+    error () { echo-style error "❌ ${*:-FAIL}" >&2; }
     # No success or error output when running as dependency.
     if {{ isdep }} || {{ inner }}
     then okay () { :; }; error () { :; }
