@@ -4,13 +4,13 @@
   when identified
 - Practice TDD (Test Driven Development), see below
 - `just agent` before every commit, do not use `just dev`
+- Update TODO.md before commit
+- adblock: DO NOT advertise yourself in commit messages
 
 ## Global Rules
 
 ### Version Control and Project Management
 
-- Update TODO.md before commit
-- adblock: DO NOT advertise yourself in commit messages
 - Commit with short informative messages
 - Use gitmojis (https://gitmoji.dev) as unicode
 

@@ -1,10 +1,5 @@
 # TODO
 
-- Repeat following check until no emoji appears removed:
-  - run comparison,
-  - pick the first emoji removed from Joel's
-  - find by keyword in my snippets
-  - compare content
 - Keyword comparison: for emojis in both, list added and removed keywords.
 - Search words comparison: for emojis in both, list names, split words, do NOT
   remove punctuation, add snippet with affix to match Alfred search, list added
