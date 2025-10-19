@@ -1,9 +1,9 @@
 # TODO
 
-- comparison: add categories
-  - found (exact content match)
-  - added emoji presentation marker
-  - removed space (unicorn)
+- Modify compare_packs to use snippet name instead of content as key in added
+  and removed comparison attributes
+- Generalize AlfredSnippet positional arguments (uid keyword) in existing tests
+  to make code more compact
 - Repeat following check until no emoji appears removed:
   - run comparison,
   - pick the first emoji removed from Joel's

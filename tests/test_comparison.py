@@ -1,6 +1,6 @@
 """Tests for emoji pack comparison."""
 
-from emojipack.comparison import compare_packs
+from emojipack.comparison import EmojiComparison, EmojiMatch, compare_packs
 from emojipack.pack import SnippetPack
 from emojipack.snippets import AlfredSnippet
 
@@ -44,10 +44,18 @@ def test_compare_packs_with_different_emojis():
     theirs = SnippetPack(prefix=":", suffix=":", snippets=theirs_snippets)
     mine = SnippetPack(prefix=":", suffix=":", snippets=mine_snippets)
     result = compare_packs(theirs, mine)
-    expected_removed = {"👍": [theirs_snippets[0], theirs_snippets[1]]}
-    expected_added = {"🎉": [mine_snippets[1]]}
-    assert result.removed == expected_removed
-    assert result.added == expected_added
+    expected = EmojiComparison(
+        found={
+            "❤️": EmojiMatch(
+                theirs=[theirs_snippets[2]], mine=[mine_snippets[0]]
+            )
+        },
+        added_emoji_presentation={},
+        removed_space={},
+        removed={"👍": [theirs_snippets[0], theirs_snippets[1]]},
+        added={"🎉": [mine_snippets[1]]},
+    )
+    assert result == expected
 
 
 def test_compare_packs_ignores_comment_snippets():
@@ -56,38 +64,148 @@ def test_compare_packs_ignores_comment_snippets():
         prefix=":",
         suffix=":",
         snippets=[
-            AlfredSnippet(
-                keyword="comment",
-                name="# This is a comment",
-                snippet="💬",
-                uid="comment-1",
-            ),
-            AlfredSnippet(
-                keyword="heart",
-                name="❤️ Red heart",
-                snippet="❤️",
-                uid="heart-2764",
-            ),
+            AlfredSnippet("comment", "# Comment", "💬", "c1"),
         ],
     )
     mine = SnippetPack(
         prefix=":",
         suffix=":",
         snippets=[
-            AlfredSnippet(
-                keyword="heart",
-                name="❤️ Red heart",
-                snippet="❤️",
-                uid="heart-2764",
-            ),
-            AlfredSnippet(
-                keyword="another-comment",
-                name="# Another comment",
-                snippet="📝",
-                uid="comment-2",
-            ),
+            AlfredSnippet("comment2", "# Another", "📝", "c2"),
         ],
     )
     result = compare_packs(theirs, mine)
-    assert result.removed == {}
-    assert result.added == {}
+    expected = EmojiComparison(
+        found={},
+        added_emoji_presentation={},
+        removed_space={},
+        added={},
+        removed={},
+    )
+    assert result == expected
+
+
+def test_compare_packs_found_exact_matches():
+    """Emojis with exact content match appear in found category."""
+    heart_theirs = AlfredSnippet(
+        keyword="heart", name="❤️ Red heart", snippet="❤️", uid="h1"
+    )
+    heart_mine = AlfredSnippet(
+        keyword="heart", name="❤️ Red heart", snippet="❤️", uid="h2"
+    )
+    theirs = SnippetPack(prefix=":", suffix=":", snippets=[heart_theirs])
+    mine = SnippetPack(prefix=":", suffix=":", snippets=[heart_mine])
+
+    result = compare_packs(theirs, mine)
+
+    expected = EmojiComparison(
+        found={"❤️": EmojiMatch(theirs=[heart_theirs], mine=[heart_mine])},
+        added_emoji_presentation={},
+        removed_space={},
+        added={},
+        removed={},
+    )
+    assert result == expected
+
+
+def test_compare_packs_added_emoji_presentation():
+    """Emojis where mine adds U+FE0F appear in added_emoji_presentation."""
+    heart_plain = AlfredSnippet(
+        keyword="heart",
+        name="\u2764 Red heart",
+        snippet="\u2764",
+        uid="h1",
+    )
+    heart_presentation = AlfredSnippet(
+        keyword="heart",
+        name="\u2764\ufe0f Red heart",
+        snippet="\u2764\ufe0f",
+        uid="h2",
+    )
+    theirs = SnippetPack(prefix=":", suffix=":", snippets=[heart_plain])
+    mine = SnippetPack(prefix=":", suffix=":", snippets=[heart_presentation])
+
+    result = compare_packs(theirs, mine)
+
+    expected = EmojiComparison(
+        found={},
+        added_emoji_presentation={
+            "\u2764": EmojiMatch(
+                theirs=[heart_plain], mine=[heart_presentation]
+            )
+        },
+        removed_space={},
+        added={},
+        removed={},
+    )
+    assert result == expected
+
+
+def test_compare_packs_removed_space():
+    """Emojis where mine removes spaces appear in removed_space."""
+    unicorn_space = AlfredSnippet(
+        keyword="unicorn", name="🦄 Unicorn", snippet="🦄 ", uid="u1"
+    )
+    unicorn_no_space = AlfredSnippet(
+        keyword="unicorn", name="🦄 Unicorn", snippet="🦄", uid="u2"
+    )
+    theirs = SnippetPack(prefix=":", suffix=":", snippets=[unicorn_space])
+    mine = SnippetPack(prefix=":", suffix=":", snippets=[unicorn_no_space])
+
+    result = compare_packs(theirs, mine)
+
+    expected = EmojiComparison(
+        found={},
+        added_emoji_presentation={},
+        removed_space={
+            "🦄 ": EmojiMatch(theirs=[unicorn_space], mine=[unicorn_no_space])
+        },
+        added={},
+        removed={},
+    )
+    assert result == expected
+
+
+def test_compare_packs_all_categories():
+    """Test with emojis in all different categories simultaneously."""
+    theirs_snippets = [
+        AlfredSnippet(
+            "heart", "\u2764\ufe0f Red heart", "\u2764\ufe0f", uid="1"
+        ),
+        AlfredSnippet("star", "\u2b50 Star", "\u2b50", uid="2"),
+        AlfredSnippet("unicorn", "🦄 Unicorn", "🦄 ", uid="3"),
+        AlfredSnippet("old", "👴 Old", "👴", uid="4"),
+    ]
+    mine_snippets = [
+        AlfredSnippet(
+            "heart", "\u2764\ufe0f Red heart", "\u2764\ufe0f", uid="5"
+        ),
+        AlfredSnippet("star", "\u2b50\ufe0f Star", "\u2b50\ufe0f", uid="6"),
+        AlfredSnippet("unicorn", "🦄 Unicorn", "🦄", uid="7"),
+        AlfredSnippet("new", "🎉 New", "🎉", uid="8"),
+    ]
+    theirs = SnippetPack(prefix=":", suffix=":", snippets=theirs_snippets)
+    mine = SnippetPack(prefix=":", suffix=":", snippets=mine_snippets)
+
+    result = compare_packs(theirs, mine)
+
+    expected = EmojiComparison(
+        found={
+            "\u2764\ufe0f": EmojiMatch(
+                theirs=[theirs_snippets[0]], mine=[mine_snippets[0]]
+            )
+        },
+        added_emoji_presentation={
+            "\u2b50": EmojiMatch(
+                theirs=[theirs_snippets[1]], mine=[mine_snippets[1]]
+            )
+        },
+        removed_space={
+            "🦄 ": EmojiMatch(
+                theirs=[theirs_snippets[2]], mine=[mine_snippets[2]]
+            )
+        },
+        added={"🎉": [mine_snippets[3]]},
+        removed={"👴": [theirs_snippets[3]]},
+    )
+    assert result == expected

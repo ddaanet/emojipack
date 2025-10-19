@@ -77,7 +77,7 @@ def test_generates_macos_plist_with_flag(tmp_path: Path):
 
 
 def test_compare_subcommand_outputs_yaml(tmp_path: Path):
-    """CLI compare subcommand outputs YAML with added/removed emojis."""
+    """CLI compare subcommand outputs YAML with categorized emojis."""
     theirs_pack = SnippetPack(
         prefix=":",
         suffix=":",
@@ -116,6 +116,9 @@ def test_compare_subcommand_outputs_yaml(tmp_path: Path):
     assert result.exit_code == 0
     output = yaml.safe_load(result.stdout)
     expected = {
+        "found": {},
+        "added_emoji_presentation": {},
+        "removed_space": {},
         "removed": {"👍 Thumbs up": ["thumbsup", "+1"]},
         "added": {"🎉 Party popper": ["tada"]},
     }

@@ -8,7 +8,7 @@ from pathlib import Path
 import typer
 import yaml
 
-from emojipack.comparison import compare_packs
+from emojipack.comparison import EmojiMatch, compare_packs
 from emojipack.download import fetch_gemoji_data
 from emojipack.pack import SnippetPack
 from emojipack.snippets import AlfredSnippet
@@ -47,6 +47,19 @@ def _format_emoji_dict(
     }
 
 
+def _format_emoji_match_dict(
+    emoji_dict: dict[str, EmojiMatch],
+) -> dict[str, dict[str, list[str]]]:
+    """Convert emoji->EmojiMatch dict to nested dict with keywords."""
+    return {
+        match.mine[0].name: {
+            "theirs": [s.keyword for s in match.theirs],
+            "mine": [s.keyword for s in match.mine],
+        }
+        for match in emoji_dict.values()
+    }
+
+
 @app.command()
 def compare(theirs: Path, mine: Path) -> None:
     """Compare two emoji snippet packs."""
@@ -55,6 +68,11 @@ def compare(theirs: Path, mine: Path) -> None:
     result = compare_packs(theirs_pack, mine_pack)
     output = {
         "removed": _format_emoji_dict(result.removed),
+        "removed_space": _format_emoji_match_dict(result.removed_space),
+        "added_emoji_presentation": _format_emoji_match_dict(
+            result.added_emoji_presentation
+        ),
+        "found": _format_emoji_match_dict(result.found),
         "added": _format_emoji_dict(result.added),
     }
     typer.echo(yaml.dump(output, allow_unicode=True, sort_keys=False))
