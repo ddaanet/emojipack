@@ -176,12 +176,7 @@ def test_snippet_pack_read_skips_icon(tmp_path: Path):
 
 def test_snippet_pack_read_without_info_plist(tmp_path: Path):
     """SnippetPack.read handles missing info.plist with empty prefix/suffix."""
-    snippet = AlfredSnippet(
-        keyword="smile",
-        name="😀 Grinning",
-        snippet="😀",
-        uid="smile-1F600",
-    )
+    snippet = AlfredSnippet("smile", "😀 Grinning", "😀", uid="smile-1F600")
     output_file = tmp_path / "test.alfredsnippets"
     with zipfile.ZipFile(output_file, "w") as zf:
         content = json.dumps(snippet.to_json(), ensure_ascii=False)

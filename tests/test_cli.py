@@ -83,29 +83,16 @@ def test_compare_subcommand_outputs_yaml(tmp_path: Path):
         suffix=":",
         snippets=[
             AlfredSnippet(
-                keyword="thumbsup",
-                name="👍 Thumbs up",
-                snippet="👍",
-                uid="thumbsup-1F44D",
+                "thumbsup", "👍 Thumbs up", "👍", uid="thumbsup-1F44D"
             ),
-            AlfredSnippet(
-                keyword="+1",
-                name="👍 Thumbs up",
-                snippet="👍",
-                uid="+1-1F44D",
-            ),
+            AlfredSnippet("+1", "👍 Thumbs up", "👍", uid="+1-1F44D"),
         ],
     )
     mine_pack = SnippetPack(
         prefix=":",
         suffix=":",
         snippets=[
-            AlfredSnippet(
-                keyword="tada",
-                name="🎉 Party popper",
-                snippet="🎉",
-                uid="tada-1F389",
-            )
+            AlfredSnippet("tada", "🎉 Party popper", "🎉", uid="tada-1F389")
         ],
     )
     theirs_path = tmp_path / "theirs.alfredsnippets"

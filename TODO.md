@@ -1,7 +1,5 @@
 # TODO
 
-- Generalize AlfredSnippet positional arguments (uid keyword) in existing tests
-  to make code more compact
 - Repeat following check until no emoji appears removed:
   - run comparison,
   - pick the first emoji removed from Joel's

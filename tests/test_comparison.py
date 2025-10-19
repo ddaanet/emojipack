@@ -8,38 +8,13 @@ from emojipack.snippets import AlfredSnippet
 def test_compare_packs_with_different_emojis():
     """Compare two packs with different emoji content."""
     theirs_snippets = [
-        AlfredSnippet(
-            keyword="thumbsup",
-            name="👍 Thumbs up",
-            snippet="👍",
-            uid="thumbsup-1F44D",
-        ),
-        AlfredSnippet(
-            keyword="+1",
-            name="👍 Thumbs up",
-            snippet="👍",
-            uid="+1-1F44D",
-        ),
-        AlfredSnippet(
-            keyword="heart",
-            name="❤️ Red heart",
-            snippet="❤️",
-            uid="heart-2764",
-        ),
+        AlfredSnippet("thumbsup", "👍 Thumbs up", "👍", uid="thumbsup-1F44D"),
+        AlfredSnippet("+1", "👍 Thumbs up", "👍", uid="+1-1F44D"),
+        AlfredSnippet("heart", "❤️ Red heart", "❤️", uid="heart-2764"),
     ]
     mine_snippets = [
-        AlfredSnippet(
-            keyword="heart",
-            name="❤️ Red heart",
-            snippet="❤️",
-            uid="heart-2764",
-        ),
-        AlfredSnippet(
-            keyword="tada",
-            name="🎉 Party popper",
-            snippet="🎉",
-            uid="tada-1F389",
-        ),
+        AlfredSnippet("heart", "❤️ Red heart", "❤️", uid="heart-2764"),
+        AlfredSnippet("tada", "🎉 Party popper", "🎉", uid="tada-1F389"),
     ]
     theirs = SnippetPack(prefix=":", suffix=":", snippets=theirs_snippets)
     mine = SnippetPack(prefix=":", suffix=":", snippets=mine_snippets)
@@ -111,16 +86,10 @@ def test_compare_packs_found_exact_matches():
 def test_compare_packs_added_emoji_presentation():
     """Emojis where mine adds U+FE0F appear in added_emoji_presentation."""
     heart_plain = AlfredSnippet(
-        keyword="heart",
-        name="\u2764 Red heart",
-        snippet="\u2764",
-        uid="h1",
+        "heart", "\u2764 Red heart", "\u2764", uid="h1"
     )
     heart_presentation = AlfredSnippet(
-        keyword="heart",
-        name="\u2764\ufe0f Red heart",
-        snippet="\u2764\ufe0f",
-        uid="h2",
+        "heart", "\u2764\ufe0f Red heart", "\u2764\ufe0f", uid="h2"
     )
     theirs = SnippetPack(prefix=":", suffix=":", snippets=[heart_plain])
     mine = SnippetPack(prefix=":", suffix=":", snippets=[heart_presentation])
@@ -143,12 +112,8 @@ def test_compare_packs_added_emoji_presentation():
 
 def test_compare_packs_removed_space():
     """Emojis where mine removes spaces appear in removed_space."""
-    unicorn_space = AlfredSnippet(
-        keyword="unicorn", name="🦄 Unicorn", snippet="🦄 ", uid="u1"
-    )
-    unicorn_no_space = AlfredSnippet(
-        keyword="unicorn", name="🦄 Unicorn", snippet="🦄", uid="u2"
-    )
+    unicorn_space = AlfredSnippet("unicorn", "🦄 Unicorn", "🦄 ", uid="u1")
+    unicorn_no_space = AlfredSnippet("unicorn", "🦄 Unicorn", "🦄", uid="u2")
     theirs = SnippetPack(prefix=":", suffix=":", snippets=[unicorn_space])
     mine = SnippetPack(prefix=":", suffix=":", snippets=[unicorn_no_space])
 
