@@ -51,19 +51,53 @@ def _format_emoji_match_dict(
     return [match.mine[0].name for match in emoji_dict.values()]
 
 
+def _format_emoji_dict_verbose(
+    emoji_dict: dict[str, list[AlfredSnippet]],
+) -> dict[str, list[str]]:
+    """Convert emoji->snippets dict to name->keywords dict."""
+    return {
+        snippets[0].name: [s.keyword for s in snippets]
+        for snippets in emoji_dict.values()
+    }
+
+
+def _format_emoji_match_dict_verbose(
+    emoji_dict: dict[str, EmojiMatch],
+) -> dict[str, list[str]]:
+    """Convert emoji->EmojiMatch dict to name->keywords dict."""
+    return {
+        match.mine[0].name: [s.keyword for s in match.mine]
+        for match in emoji_dict.values()
+    }
+
+
 @app.command()
-def compare(theirs: Path, mine: Path) -> None:
+def compare(theirs: Path, mine: Path, verbose: bool = False) -> None:
     """Compare two emoji snippet packs."""
     theirs_pack = SnippetPack.read(theirs)
     mine_pack = SnippetPack.read(mine)
     result = compare_packs(theirs_pack, mine_pack)
-    output = {
-        "removed": _format_emoji_dict(result.removed),
-        "removed_space": _format_emoji_match_dict(result.removed_space),
-        "added_emoji_presentation": _format_emoji_match_dict(
-            result.added_emoji_presentation
-        ),
-        "found": _format_emoji_match_dict(result.found),
-        "added": _format_emoji_dict(result.added),
-    }
+
+    output: dict[str, dict[str, list[str]] | list[str] | int]
+    if verbose:
+        output = {
+            "removed": _format_emoji_dict_verbose(result.removed),
+            "found": _format_emoji_match_dict_verbose(result.found),
+            "added_emoji_presentation": _format_emoji_match_dict_verbose(
+                result.added_emoji_presentation
+            ),
+            "removed_space": _format_emoji_match_dict_verbose(
+                result.removed_space
+            ),
+            "added": _format_emoji_dict_verbose(result.added),
+        }
+    else:
+        output = {
+            "removed": _format_emoji_dict(result.removed),
+            "found": len(result.found),
+            "added_emoji_presentation": len(result.added_emoji_presentation),
+            "removed_space": len(result.removed_space),
+            "added": len(result.added),
+        }
+
     typer.echo(yaml.dump(output, allow_unicode=True, sort_keys=False))

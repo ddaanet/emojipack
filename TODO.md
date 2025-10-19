@@ -1,8 +1,5 @@
 # TODO
 
-- Add compare -v|--verbose option: show keywords for all categories. New
-  default behavior: only list removed emojis, display counts for other
-  categories
 - Modify comparison to use my snippet as key for added_emoji_presentation
 - Modify compare_packs to use snippet name instead of content as key in added
   and removed comparison attributes

@@ -77,7 +77,7 @@ def test_generates_macos_plist_with_flag(tmp_path: Path):
 
 
 def test_compare_subcommand_outputs_yaml(tmp_path: Path):
-    """CLI compare subcommand outputs YAML with categorized emojis."""
+    """CLI compare shows counts by default, lists only removed."""
     theirs_pack = SnippetPack(
         prefix=":",
         suffix=":",
@@ -116,10 +116,46 @@ def test_compare_subcommand_outputs_yaml(tmp_path: Path):
     assert result.exit_code == 0
     output = yaml.safe_load(result.stdout)
     expected = {
-        "found": [],
-        "added_emoji_presentation": [],
-        "removed_space": [],
         "removed": ["👍 Thumbs up"],
-        "added": ["🎉 Party popper"],
+        "found": 0,
+        "added_emoji_presentation": 0,
+        "removed_space": 0,
+        "added": 1,
+    }
+    assert output == expected
+
+
+def test_compare_verbose_shows_keywords(tmp_path: Path):
+    """CLI compare --verbose shows keywords for all categories."""
+    theirs_pack = SnippetPack(
+        prefix=":",
+        suffix=":",
+        snippets=[
+            AlfredSnippet("thumbsup", "👍 Thumbs up", "👍", uid="t1"),
+            AlfredSnippet("+1", "👍 Thumbs up", "👍", uid="t2"),
+        ],
+    )
+    mine_pack = SnippetPack(
+        prefix=":",
+        suffix=":",
+        snippets=[
+            AlfredSnippet("tada", "🎉 Party popper", "🎉", uid="m1"),
+        ],
+    )
+    theirs_path = tmp_path / "theirs.alfredsnippets"
+    mine_path = tmp_path / "mine.alfredsnippets"
+    theirs_pack.write(theirs_path)
+    mine_pack.write(mine_path)
+    result = runner.invoke(
+        app, ["compare", "--verbose", str(theirs_path), str(mine_path)]
+    )
+    assert result.exit_code == 0
+    output = yaml.safe_load(result.stdout)
+    expected = {
+        "removed": {"👍 Thumbs up": ["thumbsup", "+1"]},
+        "found": {},
+        "added_emoji_presentation": {},
+        "removed_space": {},
+        "added": {"🎉 Party popper": ["tada"]},
     }
     assert output == expected
