@@ -39,25 +39,16 @@ def generate(macos: bool = False) -> None:
 
 def _format_emoji_dict(
     emoji_dict: dict[str, list[AlfredSnippet]],
-) -> dict[str, list[str]]:
-    """Convert emoji->snippets dict to name->keywords dict."""
-    return {
-        snippets[0].name: [s.keyword for s in snippets]
-        for snippets in emoji_dict.values()
-    }
+) -> list[str]:
+    """Convert emoji->snippets dict to list of snippet names."""
+    return [snippets[0].name for snippets in emoji_dict.values()]
 
 
 def _format_emoji_match_dict(
     emoji_dict: dict[str, EmojiMatch],
-) -> dict[str, dict[str, list[str]]]:
-    """Convert emoji->EmojiMatch dict to nested dict with keywords."""
-    return {
-        match.mine[0].name: {
-            "theirs": [s.keyword for s in match.theirs],
-            "mine": [s.keyword for s in match.mine],
-        }
-        for match in emoji_dict.values()
-    }
+) -> list[str]:
+    """Convert emoji->EmojiMatch dict to list of mine snippet names."""
+    return [match.mine[0].name for match in emoji_dict.values()]
 
 
 @app.command()
