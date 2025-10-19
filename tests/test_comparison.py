@@ -166,6 +166,29 @@ def test_compare_packs_removed_space():
     assert result == expected
 
 
+def test_compare_packs_keycap_emoji_presentation():
+    """Keycap emojis with variation selector inserted before keycap."""
+    keycap_plain = AlfredSnippet("1", "1⃣ Keycap 1", "\u0031\u20e3", uid="k1")
+    keycap_vs = AlfredSnippet(
+        "1", "1️⃣ Keycap 1", "\u0031\ufe0f\u20e3", uid="k2"
+    )
+    theirs = SnippetPack(prefix=":", suffix=":", snippets=[keycap_plain])
+    mine = SnippetPack(prefix=":", suffix=":", snippets=[keycap_vs])
+
+    result = compare_packs(theirs, mine)
+
+    expected = EmojiComparison(
+        found={},
+        added_emoji_presentation={
+            "\u0031\u20e3": EmojiMatch(theirs=[keycap_plain], mine=[keycap_vs])
+        },
+        removed_space={},
+        added={},
+        removed={},
+    )
+    assert result == expected
+
+
 def test_compare_packs_all_categories():
     """Test with emojis in all different categories simultaneously."""
     theirs_snippets = [

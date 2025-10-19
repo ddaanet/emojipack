@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from emojipack.pack import SnippetPack
 from emojipack.snippets import AlfredSnippet
 
+EMOJI_VS = "\ufe0f"  # Emoji variation selector
+KEYCAP = "\u20e3"  # Combining enclosing keycap
+
 
 @dataclass
 class EmojiMatch:
@@ -63,7 +66,12 @@ def compare_packs(theirs: SnippetPack, mine: SnippetPack) -> EmojiComparison:
             mine_categorized.add(theirs_emoji)
             continue
 
-        theirs_with_presentation = theirs_emoji + "\ufe0f"
+        if theirs_emoji.endswith(KEYCAP):
+            base = theirs_emoji[: -len(KEYCAP)]
+            theirs_with_presentation = base + EMOJI_VS + KEYCAP
+        else:
+            theirs_with_presentation = theirs_emoji + EMOJI_VS
+
         if theirs_with_presentation in mine_by_emoji:
             added_emoji_presentation[theirs_emoji] = EmojiMatch(
                 theirs=theirs_snippets,
