@@ -130,7 +130,7 @@ def test_compare_packs_added_emoji_presentation():
     expected = EmojiComparison(
         found={},
         added_emoji_presentation={
-            "\u2764": EmojiMatch(
+            "\u2764\ufe0f": EmojiMatch(
                 theirs=[heart_plain], mine=[heart_presentation]
             )
         },
@@ -180,7 +180,9 @@ def test_compare_packs_keycap_emoji_presentation():
     expected = EmojiComparison(
         found={},
         added_emoji_presentation={
-            "\u0031\u20e3": EmojiMatch(theirs=[keycap_plain], mine=[keycap_vs])
+            "\u0031\ufe0f\u20e3": EmojiMatch(
+                theirs=[keycap_plain], mine=[keycap_vs]
+            )
         },
         removed_space={},
         added={},
@@ -219,7 +221,7 @@ def test_compare_packs_all_categories():
             )
         },
         added_emoji_presentation={
-            "\u2b50": EmojiMatch(
+            "\u2b50\ufe0f": EmojiMatch(
                 theirs=[theirs_snippets[1]], mine=[mine_snippets[1]]
             )
         },

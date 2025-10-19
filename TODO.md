@@ -1,6 +1,5 @@
 # TODO
 
-- Modify comparison to use my snippet as key for added_emoji_presentation
 - Modify compare_packs to use snippet name instead of content as key in added
   and removed comparison attributes
 - Generalize AlfredSnippet positional arguments (uid keyword) in existing tests

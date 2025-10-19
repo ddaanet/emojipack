@@ -73,7 +73,7 @@ def compare_packs(theirs: SnippetPack, mine: SnippetPack) -> EmojiComparison:
             theirs_with_presentation = theirs_emoji + EMOJI_VS
 
         if theirs_with_presentation in mine_by_emoji:
-            added_emoji_presentation[theirs_emoji] = EmojiMatch(
+            added_emoji_presentation[theirs_with_presentation] = EmojiMatch(
                 theirs=theirs_snippets,
                 mine=mine_by_emoji[theirs_with_presentation],
             )
