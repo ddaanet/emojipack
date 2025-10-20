@@ -76,7 +76,11 @@ class CompareOutputVerbose(TypedDict):
 
 
 @app.command()
-def generate(macos: bool = False) -> None:
+def generate(
+    macos: bool = False,
+    prefix: str = ":",
+    suffix: str = ":",
+) -> None:
     """Generate Emoji Snippet Pack for Alfred."""
     emoji_data = fetch_gemoji_data()
     snippets = [
@@ -84,9 +88,9 @@ def generate(macos: bool = False) -> None:
         for entry in emoji_data
         for alias in entry["aliases"]
     ]
-    pack = SnippetPack(prefix=":", suffix=":", snippets=snippets)
+    pack = SnippetPack(prefix, suffix, snippets=snippets)
     if macos:
-        output_path = Path("Snippet Pack.plist")
+        output_path = Path("Emoji Pack.plist")
         pack.write_macos_plist(output_path)
     else:
         with importlib.resources.path("emojipack", "icon.png") as icon_path:

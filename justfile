@@ -9,20 +9,20 @@ help:
 
 # Generate Emoji Pack
 [group('general')]
-generate *ARGS:
-    mkdir -p data
-    cd data; uv run emojipack generate {{ ARGS }}
-
-# Generate macOS text remplacements from Emoji Pack
-[group('general')]
-generate-macos:
-    mkdir -p data
-    cd data; uv run emojipack generate --macos
+build:
+    mkdir -p build
+    cd build; uv run emojipack generate
+    cd build; uv run emojipack generate --macos
 
 # Generate Emoji Pack and open with Alfred
 [group('general')]
 install: generate
-    open "data/Emoji Pack.alfredsnippets"
+    open "build/Emoji Pack.alfredsnippets"
+
+[group('general')]
+generate *ARGS:
+    cd build; uv run emojipack generate {{ ARGS }}
+
 
 # Compare generated pack with Joel's pack
 [group('general')]
@@ -33,7 +33,7 @@ compare: generate
     then do-command curl --location --output data/joel.alfredsnippets \
         "https://joelcalifa.com/blog/alfred-emoji-snippet-pack/Emoji%20Pack.alfredsnippets"
     fi
-    do-command uv run emojipack compare data/joel.alfredsnippets "data/Emoji Pack.alfredsnippets"
+    do-command uv run emojipack compare data/joel.alfredsnippets "build/Emoji Pack.alfredsnippets"
 
 # Hack to perform string interpolation on variables. Render the content of
 # the variables in a just subprocess, passing in the is_dependency() value.

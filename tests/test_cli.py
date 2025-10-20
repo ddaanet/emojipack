@@ -57,7 +57,7 @@ def test_generates_emoji_pack_alfredsnippets(tmp_path: Path):
 
 
 def test_generates_macos_plist_with_flag(tmp_path: Path):
-    """CLI generates Snippet Pack.plist with --macos flag."""
+    """CLI generates Emoji Pack.plist with --macos flag."""
     with (
         patch("emojipack.download.fetch_with_cache") as mock_fetch,
         runner.isolated_filesystem(temp_dir=tmp_path),
@@ -65,7 +65,7 @@ def test_generates_macos_plist_with_flag(tmp_path: Path):
         mock_fetch.return_value = json.dumps(SAMPLE_GEMOJI_JSON)
         result = runner.invoke(app, ["generate", "--macos"])
         assert result.exit_code == 0
-        output_file = Path("Snippet Pack.plist")
+        output_file = Path("Emoji Pack.plist")
         assert output_file.exists()
         with output_file.open("rb") as f:
             data = plistlib.load(f)
@@ -162,3 +162,47 @@ def test_compare_verbose_shows_keywords(tmp_path: Path):
         },
     }
     assert output == expected
+
+
+def test_generates_macos_plist_with_prefix_dot_suffix_dot(tmp_path: Path):
+    """CLI generates plist with prefix '.' suffix '.' shortcuts."""
+    with (
+        patch("emojipack.download.fetch_with_cache") as mock_fetch,
+        runner.isolated_filesystem(temp_dir=tmp_path),
+    ):
+        mock_fetch.return_value = json.dumps(SAMPLE_GEMOJI_JSON)
+        result = runner.invoke(
+            app, ["generate", "--macos", "--prefix", ".", "--suffix", "."]
+        )
+        assert result.exit_code == 0
+        output_file = Path("Emoji Pack.plist")
+        assert output_file.exists()
+        with output_file.open("rb") as f:
+            data = plistlib.load(f)
+        assert data == [
+            {"phrase": "😃", "shortcut": ".smiley."},
+            {"phrase": "👍", "shortcut": ".+1."},
+            {"phrase": "👍", "shortcut": ".thumbsup."},
+        ]
+
+
+def test_generates_macos_plist_with_prefix_dot_empty_suffix(tmp_path: Path):
+    """CLI generates plist with prefix '.' and empty suffix shortcuts."""
+    with (
+        patch("emojipack.download.fetch_with_cache") as mock_fetch,
+        runner.isolated_filesystem(temp_dir=tmp_path),
+    ):
+        mock_fetch.return_value = json.dumps(SAMPLE_GEMOJI_JSON)
+        result = runner.invoke(
+            app, ["generate", "--macos", "--prefix", ".", "--suffix="]
+        )
+        assert result.exit_code == 0
+        output_file = Path("Emoji Pack.plist")
+        assert output_file.exists()
+        with output_file.open("rb") as f:
+            data = plistlib.load(f)
+        assert data == [
+            {"phrase": "😃", "shortcut": ".smiley"},
+            {"phrase": "👍", "shortcut": ".+1"},
+            {"phrase": "👍", "shortcut": ".thumbsup"},
+        ]
