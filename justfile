@@ -10,9 +10,14 @@ help:
 # Generate Emoji Pack
 [group('general')]
 generate *ARGS:
-    uv run emojipack generate {{ ARGS }}
     mkdir -p data
-    mv "Emoji Pack.alfredsnippets" data
+    cd data; uv run emojipack generate {{ ARGS }}
+
+# Generate macOS text remplacements from Emoji Pack
+[group('general')]
+generate-macos:
+    mkdir -p data
+    cd data; uv run emojipack generate --macos
 
 # Generate Emoji Pack and open with Alfred
 [group('general')]
