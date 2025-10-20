@@ -22,6 +22,7 @@ emojipack = "emojipack.cli:app"
 [dependency-groups]
 dev = [
     "docformatter>=1.7.7",
+    "isort>=7.0.0",
     "mypy>=1.18.2",
     "pytest>=8.4.2",
     "ruff>=0.14.0",
@@ -84,6 +85,9 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
+
+[tool.isort]
+profile = "black"
 
 [tool.mypy]
 files = ["src", "tests"]
