@@ -3,6 +3,7 @@
 # Boolean arguments are required for typer CLI flags
 
 import importlib.resources
+import shlex
 from pathlib import Path
 from typing import TypedDict
 
@@ -92,7 +93,8 @@ def generate(macos: bool = False) -> None:
             pack.set_icon(icon_path)
         output_path = Path("Emoji Pack.alfredsnippets")
         pack.write(output_path)
-    typer.echo(f"Generated {output_path} with {len(snippets)} snippets")
+    output_quoted = shlex.quote(str(output_path))
+    typer.echo(f"Generated {output_quoted} with {len(snippets)} snippets")
 
 
 def _format_emoji_dict(
