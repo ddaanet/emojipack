@@ -4,16 +4,74 @@
 
 import importlib.resources
 from pathlib import Path
+from typing import TypedDict
 
 import typer
 import yaml
 
-from emojipack.comparison import EmojiMatch, compare_packs
+from emojipack.comparison import (
+    EmojiMatch,
+    KeywordMatch,
+    SnippetPackComparison,
+    compare_packs,
+)
 from emojipack.download import fetch_gemoji_data
 from emojipack.pack import SnippetPack
 from emojipack.snippets import AlfredSnippet
 
 app = typer.Typer()
+
+
+class EmojisNormal(TypedDict):
+    """Emoji comparison output in normal mode."""
+
+    removed: list[str]
+    found: int
+    added_emoji_presentation: int
+    removed_space: int
+    added: int
+
+
+class KeywordsNormal(TypedDict):
+    """Keyword comparison output in normal mode."""
+
+    removed: dict[str, str]
+    modified: dict[str, dict[str, str]]
+    matching: int
+    added: int
+
+
+class CompareOutputNormal(TypedDict):
+    """Normal mode compare output structure."""
+
+    emojis: EmojisNormal
+    keywords: KeywordsNormal
+
+
+class EmojisVerbose(TypedDict):
+    """Emoji comparison output in verbose mode."""
+
+    removed: dict[str, list[str]]
+    found: dict[str, list[str]]
+    added_emoji_presentation: dict[str, list[str]]
+    removed_space: dict[str, list[str]]
+    added: dict[str, list[str]]
+
+
+class KeywordsVerbose(TypedDict):
+    """Keyword comparison output in verbose mode."""
+
+    removed: dict[str, str]
+    added: dict[str, str]
+    matching: dict[str, str]
+    modified: dict[str, dict[str, str]]
+
+
+class CompareOutputVerbose(TypedDict):
+    """Verbose mode compare output structure."""
+
+    emojis: EmojisVerbose
+    keywords: KeywordsVerbose
 
 
 @app.command()
@@ -71,6 +129,67 @@ def _format_emoji_match_dict_verbose(
     }
 
 
+def _format_keyword_dict_verbose(
+    keyword_dict: dict[str, AlfredSnippet],
+) -> dict[str, str]:
+    """Format keywords as keyword->snippet name."""
+    return {keyword: snippet.name for keyword, snippet in keyword_dict.items()}
+
+
+def _format_keyword_modified(
+    keyword_dict: dict[str, KeywordMatch],
+) -> dict[str, dict[str, str]]:
+    """Format modified keywords as keyword->{theirs: name, mine: name}."""
+    return {
+        keyword: {"theirs": match.theirs.name, "mine": match.mine.name}
+        for keyword, match in keyword_dict.items()
+    }
+
+
+def _format_compare_verbose(
+    result: SnippetPackComparison,
+) -> CompareOutputVerbose:
+    """Format comparison result in verbose mode."""
+    emojis = EmojisVerbose(
+        removed=_format_emoji_dict_verbose(result.emojis.removed),
+        found=_format_emoji_match_dict_verbose(result.emojis.found),
+        added_emoji_presentation=_format_emoji_match_dict_verbose(
+            result.emojis.added_emoji_presentation
+        ),
+        removed_space=_format_emoji_match_dict_verbose(
+            result.emojis.removed_space
+        ),
+        added=_format_emoji_dict_verbose(result.emojis.added),
+    )
+    keywords = KeywordsVerbose(
+        removed=_format_keyword_dict_verbose(result.keywords.removed),
+        added=_format_keyword_dict_verbose(result.keywords.added),
+        matching=_format_keyword_dict_verbose(result.keywords.matching),
+        modified=_format_keyword_modified(result.keywords.modified),
+    )
+    return CompareOutputVerbose(emojis=emojis, keywords=keywords)
+
+
+def _format_compare_normal(
+    result: SnippetPackComparison,
+) -> CompareOutputNormal:
+    """Format comparison result in normal mode."""
+    emojis = EmojisNormal(
+        removed=_format_emoji_dict(result.emojis.removed),
+        found=len(result.emojis.found),
+        added_emoji_presentation=len(result.emojis.added_emoji_presentation),
+        removed_space=len(result.emojis.removed_space),
+        added=len(result.emojis.added),
+    )
+    keywords = KeywordsNormal(
+        removed=_format_keyword_dict_verbose(result.keywords.removed),
+        modified=_format_keyword_modified(result.keywords.modified),
+        matching=len(result.keywords.matching),
+        added=len(result.keywords.added),
+    )
+    return CompareOutputNormal(emojis=emojis, keywords=keywords)
+
+
 @app.command()
 def compare(theirs: Path, mine: Path, verbose: bool = False) -> None:
     """Compare two emoji snippet packs."""
@@ -78,28 +197,11 @@ def compare(theirs: Path, mine: Path, verbose: bool = False) -> None:
     mine_pack = SnippetPack.read(mine)
     result = compare_packs(theirs_pack, mine_pack)
 
-    output: dict[str, dict[str, list[str]] | list[str] | int]
+    output: CompareOutputNormal | CompareOutputVerbose
     if verbose:
-        output = {
-            "removed": _format_emoji_dict_verbose(result.removed),
-            "found": _format_emoji_match_dict_verbose(result.found),
-            "added_emoji_presentation": _format_emoji_match_dict_verbose(
-                result.added_emoji_presentation
-            ),
-            "removed_space": _format_emoji_match_dict_verbose(
-                result.removed_space
-            ),
-            "added": _format_emoji_dict_verbose(result.added),
-        }
+        output = _format_compare_verbose(result)
     else:
-        output = {
-            "removed": _format_emoji_dict(result.removed),
-            "found": len(result.found),
-            "added_emoji_presentation": len(result.added_emoji_presentation),
-            "removed_space": len(result.removed_space),
-            "added": len(result.added),
-        }
-
+        output = _format_compare_normal(result)
     typer.echo(
         yaml.dump(output, allow_unicode=True, sort_keys=False), nl=False
     )

@@ -13,8 +13,8 @@ from emojipack.snippets import AlfredSnippet
 class SnippetPack:
     """Alfred snippet pack with prefix/suffix settings."""
 
-    prefix: str
-    suffix: str
+    prefix: str = ""
+    suffix: str = ""
     snippets: list[AlfredSnippet] = field(default_factory=list)
     _icon: Path | None = None
 

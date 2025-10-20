@@ -103,11 +103,19 @@ def test_compare_subcommand_outputs_yaml(tmp_path: Path):
     assert result.exit_code == 0
     output = yaml.safe_load(result.stdout)
     expected = {
-        "removed": ["👍 Thumbs up"],
-        "found": 0,
-        "added_emoji_presentation": 0,
-        "removed_space": 0,
-        "added": 1,
+        "emojis": {
+            "removed": ["👍 Thumbs up"],
+            "found": 0,
+            "added_emoji_presentation": 0,
+            "removed_space": 0,
+            "added": 1,
+        },
+        "keywords": {
+            "removed": {"thumbsup": "👍 Thumbs up", "+1": "👍 Thumbs up"},
+            "modified": {},
+            "matching": 0,
+            "added": 1,
+        },
     }
     assert output == expected
 
@@ -139,10 +147,18 @@ def test_compare_verbose_shows_keywords(tmp_path: Path):
     assert result.exit_code == 0
     output = yaml.safe_load(result.stdout)
     expected = {
-        "removed": {"👍 Thumbs up": ["thumbsup", "+1"]},
-        "found": {},
-        "added_emoji_presentation": {},
-        "removed_space": {},
-        "added": {"🎉 Party popper": ["tada"]},
+        "emojis": {
+            "removed": {"👍 Thumbs up": ["thumbsup", "+1"]},
+            "found": {},
+            "added_emoji_presentation": {},
+            "removed_space": {},
+            "added": {"🎉 Party popper": ["tada"]},
+        },
+        "keywords": {
+            "removed": {"thumbsup": "👍 Thumbs up", "+1": "👍 Thumbs up"},
+            "added": {"tada": "🎉 Party popper"},
+            "matching": {},
+            "modified": {},
+        },
     }
     assert output == expected

@@ -9,6 +9,16 @@ EMOJI_VS = "\ufe0f"  # Emoji variation selector
 KEYCAP = "\u20e3"  # Combining enclosing keycap
 
 
+class DuplicateKeywordError(ValueError):
+    """Raised when a keyword appears multiple times in a snippet pack."""
+
+    def __init__(self, keyword: str, pack: SnippetPack) -> None:
+        """Initialize with keyword and pack."""
+        super().__init__(f"Duplicate keyword: {keyword}")
+        self.keyword = keyword
+        self.pack = pack
+
+
 @dataclass
 class EmojiMatch:
     """Pair of snippet lists from both packs for the same emoji."""
@@ -28,28 +38,54 @@ class EmojiComparison:
     removed: dict[str, list[AlfredSnippet]]
 
 
-def compare_packs(theirs: SnippetPack, mine: SnippetPack) -> EmojiComparison:
-    """Compare two snippet packs, grouping snippets by emoji content.
+@dataclass
+class KeywordMatch:
+    """Pair of snippets from both packs for the same keyword."""
 
-    Snippets with names starting with '#' are ignored (used as comments
-    in Joel's pack).
+    theirs: AlfredSnippet
+    mine: AlfredSnippet
 
-    Args:
-        theirs: The reference pack (e.g., Joel's pack)
-        mine: The pack to compare against the reference
 
-    Returns:
-        EmojiComparison with categorized emoji mappings
-    """
+@dataclass
+class KeywordComparison:
+    """Result of comparing keywords across snippet packs."""
+
+    removed: dict[str, AlfredSnippet]
+    added: dict[str, AlfredSnippet]
+    matching: dict[str, AlfredSnippet]
+    modified: dict[str, KeywordMatch]
+
+
+@dataclass
+class SnippetPackComparison:
+    """Result of comparing two snippet packs."""
+
+    emojis: EmojiComparison
+    keywords: KeywordComparison
+
+
+def _non_comment_snippets(pack: SnippetPack) -> list[AlfredSnippet]:
+    """Filter out snippets with names starting with '#'."""
+    return [s for s in pack.snippets if not s.name.startswith("#")]
+
+
+def normalize_emoji(emoji: str) -> str:
+    """Normalize emoji by removing spaces and adding variation selector."""
+    emoji = emoji.replace(" ", "")
+    if emoji.endswith(KEYCAP) and not emoji.endswith(EMOJI_VS + KEYCAP):
+        emoji = emoji[: -len(KEYCAP)] + EMOJI_VS + KEYCAP
+    if not emoji.endswith(KEYCAP) and not emoji.endswith(EMOJI_VS):
+        emoji = emoji + EMOJI_VS
+    return emoji
+
+
+def compare_emojis(theirs: SnippetPack, mine: SnippetPack) -> EmojiComparison:
+    """Compare two snippet packs, grouping snippets by emoji content."""
     theirs_by_emoji: dict[str, list[AlfredSnippet]] = {}
-    for snippet in theirs.snippets:
-        if snippet.name.startswith("#"):
-            continue
+    for snippet in _non_comment_snippets(theirs):
         theirs_by_emoji.setdefault(snippet.snippet, []).append(snippet)
     mine_by_emoji: dict[str, list[AlfredSnippet]] = {}
-    for snippet in mine.snippets:
-        if snippet.name.startswith("#"):
-            continue
+    for snippet in _non_comment_snippets(mine):
         mine_by_emoji.setdefault(snippet.snippet, []).append(snippet)
 
     found: dict[str, EmojiMatch] = {}
@@ -107,3 +143,60 @@ def compare_packs(theirs: SnippetPack, mine: SnippetPack) -> EmojiComparison:
         added=added,
         removed=removed,
     )
+
+
+def compare_keywords(
+    theirs: SnippetPack, mine: SnippetPack
+) -> KeywordComparison:
+    """Compare keywords between two snippet packs."""
+    theirs_by_keyword: dict[str, AlfredSnippet] = {}
+    for snippet in _non_comment_snippets(theirs):
+        keyword = snippet.keyword.strip(":")
+        if keyword in theirs_by_keyword:
+            raise DuplicateKeywordError(keyword, theirs)
+        theirs_by_keyword[keyword] = snippet
+
+    mine_by_keyword: dict[str, AlfredSnippet] = {}
+    for snippet in _non_comment_snippets(mine):
+        keyword = snippet.keyword
+        if keyword in mine_by_keyword:
+            raise DuplicateKeywordError(keyword, mine)
+        mine_by_keyword[keyword] = snippet
+
+    matching: dict[str, AlfredSnippet] = {}
+    removed: dict[str, AlfredSnippet] = {}
+    modified: dict[str, KeywordMatch] = {}
+
+    for keyword, theirs_snippet in theirs_by_keyword.items():
+        if keyword not in mine_by_keyword:
+            removed[keyword] = theirs_snippet
+            continue
+        mine_snippet = mine_by_keyword[keyword]
+        theirs_normalized = normalize_emoji(theirs_snippet.snippet)
+        mine_normalized = normalize_emoji(mine_snippet.snippet)
+        if theirs_normalized == mine_normalized:
+            matching[keyword] = mine_snippet
+        else:
+            modified[keyword] = KeywordMatch(theirs_snippet, mine_snippet)
+
+    added = {
+        keyword: snippet
+        for keyword, snippet in mine_by_keyword.items()
+        if keyword not in theirs_by_keyword
+    }
+
+    return KeywordComparison(
+        matching=matching,
+        removed=removed,
+        added=added,
+        modified=modified,
+    )
+
+
+def compare_packs(
+    theirs: SnippetPack, mine: SnippetPack
+) -> SnippetPackComparison:
+    """Compare two snippet packs by emojis and keywords."""
+    emojis = compare_emojis(theirs, mine)
+    keywords = compare_keywords(theirs, mine)
+    return SnippetPackComparison(emojis, keywords)

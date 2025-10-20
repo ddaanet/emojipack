@@ -1,6 +1,5 @@
 # TODO
 
-- Keyword comparison: for emojis in both, list added and removed keywords.
 - Search words comparison: for emojis in both, list names, split words, do NOT
   remove punctuation, add snippet with affix to match Alfred search, list added
   and removed words.

@@ -1,6 +1,14 @@
 """Tests for emoji pack comparison."""
 
-from emojipack.comparison import EmojiComparison, EmojiMatch, compare_packs
+from emojipack.comparison import (
+    EmojiComparison,
+    EmojiMatch,
+    KeywordComparison,
+    KeywordMatch,
+    compare_emojis,
+    compare_keywords,
+    normalize_emoji,
+)
 from emojipack.pack import SnippetPack
 from emojipack.snippets import AlfredSnippet
 
@@ -18,7 +26,7 @@ def test_compare_packs_with_different_emojis():
     ]
     theirs = SnippetPack(prefix=":", suffix=":", snippets=theirs_snippets)
     mine = SnippetPack(prefix=":", suffix=":", snippets=mine_snippets)
-    result = compare_packs(theirs, mine)
+    result = compare_emojis(theirs, mine)
     expected = EmojiComparison(
         found={
             "❤️": EmojiMatch(
@@ -49,7 +57,7 @@ def test_compare_packs_ignores_comment_snippets():
             AlfredSnippet("comment2", "# Another", "📝", "c2"),
         ],
     )
-    result = compare_packs(theirs, mine)
+    result = compare_emojis(theirs, mine)
     expected = EmojiComparison(
         found={},
         added_emoji_presentation={},
@@ -71,7 +79,7 @@ def test_compare_packs_found_exact_matches():
     theirs = SnippetPack(prefix=":", suffix=":", snippets=[heart_theirs])
     mine = SnippetPack(prefix=":", suffix=":", snippets=[heart_mine])
 
-    result = compare_packs(theirs, mine)
+    result = compare_emojis(theirs, mine)
 
     expected = EmojiComparison(
         found={"❤️": EmojiMatch(theirs=[heart_theirs], mine=[heart_mine])},
@@ -94,7 +102,7 @@ def test_compare_packs_added_emoji_presentation():
     theirs = SnippetPack(prefix=":", suffix=":", snippets=[heart_plain])
     mine = SnippetPack(prefix=":", suffix=":", snippets=[heart_presentation])
 
-    result = compare_packs(theirs, mine)
+    result = compare_emojis(theirs, mine)
 
     expected = EmojiComparison(
         found={},
@@ -117,7 +125,7 @@ def test_compare_packs_removed_space():
     theirs = SnippetPack(prefix=":", suffix=":", snippets=[unicorn_space])
     mine = SnippetPack(prefix=":", suffix=":", snippets=[unicorn_no_space])
 
-    result = compare_packs(theirs, mine)
+    result = compare_emojis(theirs, mine)
 
     expected = EmojiComparison(
         found={},
@@ -140,7 +148,7 @@ def test_compare_packs_keycap_emoji_presentation():
     theirs = SnippetPack(prefix=":", suffix=":", snippets=[keycap_plain])
     mine = SnippetPack(prefix=":", suffix=":", snippets=[keycap_vs])
 
-    result = compare_packs(theirs, mine)
+    result = compare_emojis(theirs, mine)
 
     expected = EmojiComparison(
         found={},
@@ -177,7 +185,7 @@ def test_compare_packs_all_categories():
     theirs = SnippetPack(prefix=":", suffix=":", snippets=theirs_snippets)
     mine = SnippetPack(prefix=":", suffix=":", snippets=mine_snippets)
 
-    result = compare_packs(theirs, mine)
+    result = compare_emojis(theirs, mine)
 
     expected = EmojiComparison(
         found={
@@ -197,5 +205,119 @@ def test_compare_packs_all_categories():
         },
         added={"🎉": [mine_snippets[3]]},
         removed={"👴": [theirs_snippets[3]]},
+    )
+    assert result == expected
+
+
+def test_normalize_emoji_trailing_space():
+    """Normalize emoji removes trailing space, noop when none."""
+    assert normalize_emoji("❤️ ") == "❤️"
+    assert normalize_emoji("❤️") == "❤️"
+
+
+def test_normalize_emoji_adds_variation_selector():
+    """Normalize emoji adds U+FE0F if not present."""
+    assert normalize_emoji("\u2764") == "\u2764\ufe0f"
+    assert normalize_emoji("\u2764\ufe0f") == "\u2764\ufe0f"
+
+
+def test_normalize_emoji_keycap_special_case():
+    """Normalize emoji inserts U+FE0F before keycap, not after."""
+    assert normalize_emoji("1\u20e3") == "1\ufe0f\u20e3"
+    assert normalize_emoji("1\ufe0f\u20e3") == "1\ufe0f\u20e3"
+
+
+def test_compare_keywords_matching():
+    """Keywords with same normalized emoji are classified as matching."""
+    theirs_snippets = [
+        AlfredSnippet(":heart:", "❤️ Heart", "❤️", "h1"),
+        AlfredSnippet(":love:", "❤️ Heart", "❤️", "h2"),
+    ]
+    mine_snippets = [
+        AlfredSnippet("heart", "❤️ Heart", "❤️", "h3"),
+        AlfredSnippet("love", "❤️ Heart", "❤️", "h4"),
+    ]
+    theirs = SnippetPack(snippets=theirs_snippets)
+    mine = SnippetPack(prefix=":", suffix=":", snippets=mine_snippets)
+
+    result = compare_keywords(theirs, mine)
+
+    expected = KeywordComparison(
+        matching={"heart": mine_snippets[0], "love": mine_snippets[1]},
+        removed={},
+        added={},
+        modified={},
+    )
+    assert result == expected
+
+
+def test_compare_keywords_added_and_removed():
+    """Keywords only in one pack are classified as added or removed."""
+    theirs_snippets = [
+        AlfredSnippet(":heart:", "❤️ Heart", "❤️", "h1"),
+        AlfredSnippet(":love:", "❤️ Heart", "❤️", "h2"),
+    ]
+    mine_snippets = [
+        AlfredSnippet("heart", "❤️ Heart", "❤️", "h3"),
+        AlfredSnippet("red", "❤️ Heart", "❤️", "h4"),
+    ]
+    theirs = SnippetPack(snippets=theirs_snippets)
+    mine = SnippetPack(snippets=mine_snippets)
+
+    result = compare_keywords(theirs, mine)
+
+    expected = KeywordComparison(
+        matching={"heart": mine_snippets[0]},
+        removed={"love": theirs_snippets[1]},
+        added={"red": mine_snippets[1]},
+        modified={},
+    )
+    assert result == expected
+
+
+def test_compare_keywords_modified():
+    """Keywords in both with different normalized emoji are modified."""
+    theirs_snippets = [
+        AlfredSnippet(":heart:", "❤️ Heart", "❤️", "h1"),
+    ]
+    mine_snippets = [
+        AlfredSnippet("heart", "❤️ Heart", "💙", "h2"),
+    ]
+    theirs = SnippetPack(snippets=theirs_snippets)
+    mine = SnippetPack(snippets=mine_snippets)
+
+    result = compare_keywords(theirs, mine)
+
+    expected = KeywordComparison(
+        matching={},
+        removed={},
+        added={},
+        modified={
+            "heart": KeywordMatch(
+                theirs=theirs_snippets[0], mine=mine_snippets[0]
+            )
+        },
+    )
+    assert result == expected
+
+
+def test_compare_keywords_matching_after_normalization():
+    """Keywords match when emoji content is same after normalization."""
+    theirs_snippets = [
+        AlfredSnippet(":heart:", "❤️ Heart", "\u2764 ", "h1"),
+    ]
+    mine_snippets = [
+        AlfredSnippet("heart", "❤️ Heart", "\u2764\ufe0f", "h2"),
+    ]
+    theirs = SnippetPack(snippets=theirs_snippets)
+    mine = SnippetPack(snippets=mine_snippets)
+
+    result = compare_keywords(theirs, mine)
+
+    expected = KeywordComparison(
+        matching={"heart": mine_snippets[0]},
+        removed={},
+        added={},
+        modified={},
     )
     assert result == expected
